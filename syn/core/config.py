@@ -51,3 +51,5 @@ SERVICE_PROBES: Dict[int, List[str]] = {
 QUICK_SCAN_PORTS = [21, 22, 23, 80, 135, 139, 443, 445, 3389]
 
 
+
+

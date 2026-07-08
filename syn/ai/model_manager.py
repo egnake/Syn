@@ -22,13 +22,13 @@ class ModelManager:
     def load_or_train_models(self):
         """KayÄ±tlÄ± modelleri yÃ¼kler veya ilk kez eÄŸitir ve kaydeder."""
         try:
-            logger.info("EÄŸitilmiÅŸ Modeller YÃ¼kleniyor...")
+            logger.info("[SYSTEM] Loading AI inference models...")
             self.classifier = joblib.load(MODEL_CLASSIFIER_FILE)
             self.anomaly_detector = joblib.load(MODEL_ANOMALY_FILE)
             self.scaler = joblib.load(MODEL_SCALER_FILE)
-            logger.info("Modeller baÅŸarÄ±yla yÃ¼klendi.")
+            logger.info("[SYSTEM] AI models initialized successfully.")
         except FileNotFoundError:
-            logger.warning("KayÄ±tlÄ± model bulunamadÄ±. Model EÄŸitimi BaÅŸlatÄ±lÄ±yor...")
+            logger.warning("[SYSTEM] No models found. Commencing training phase...")
             self._train_models()
             
         return self.classifier, self.anomaly_detector, self.scaler
@@ -44,19 +44,21 @@ class ModelManager:
         X = df[['ttl', 'latency_ms']]
         y = df['OS']
         
-        logger.info("1. YZ SÄ±nÄ±flandÄ±rma EÄŸitimi BaÅŸlÄ±yor...")
+        logger.info("[AI_TRAIN] Commencing Classifier Training...")
         self.classifier = RandomForestClassifier(random_state=42)
         self.classifier.fit(X, y)
         joblib.dump(self.classifier, MODEL_CLASSIFIER_FILE)
-        logger.info(f"SÄ±nÄ±flandÄ±rma Modeli baÅŸarÄ±yla kaydedildi: {MODEL_CLASSIFIER_FILE}")
+        logger.info("[AI_TRAIN] Classifier successfully dumped.")
         
-        logger.info("2. YZ Anomali Tespiti EÄŸitimi BaÅŸlÄ±yor...")
+        logger.info("[AI_TRAIN] Commencing Anomaly Detector Training...")
         self.scaler = StandardScaler()
         X_scaled = self.scaler.fit_transform(X)
         self.anomaly_detector = LocalOutlierFactor(contamination='auto', novelty=True) 
         self.anomaly_detector.fit(X_scaled)
         joblib.dump(self.anomaly_detector, MODEL_ANOMALY_FILE)
         joblib.dump(self.scaler, MODEL_SCALER_FILE)
-        logger.info(f"Anomali Modeli ve Ã–lÃ§ekleyici baÅŸarÄ±yla kaydedildi.")
+        logger.info("[AI_TRAIN] Anomaly Detector and Scaler successfully dumped.")
+
+
 
 

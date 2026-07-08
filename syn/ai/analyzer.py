@@ -19,7 +19,7 @@ class AIAnalyzer:
         if not results:
             return []
             
-        logger.info("YZ Ä°Ã§in Veri HazÄ±rlanÄ±yor...")
+        logger.info("[AI_EXEC] Preprocessing network vectors for AI consumption...")
         df = pd.DataFrame(results)
         X_analysis = df[['ttl', 'latency_ms']].copy()
 
@@ -30,12 +30,14 @@ class AIAnalyzer:
 
             df['anomaly_score'] = self.anomaly_detector.decision_function(X_scaled) 
             df['ai_os_tahmini'] = self.classifier.predict(X_analysis.values)
-            logger.info("YZ Analizi BaÅŸarÄ±lÄ±: OS Tahmini ve Anomali SkorlarÄ± Eklendi.")
+            logger.info("[AI_EXEC] Inference successful: OS footprints and anomaly scores mapped.")
         except Exception as e:
-            logger.error(f"YZ Analizi BaÅŸarÄ±sÄ±z: {e}")
+            logger.error(f"[AI_ERROR] Inference failure: {e}")
             df['anomaly_score'] = np.nan
             df['ai_os_tahmini'] = 'HATA/YZ'
             
         return df.to_dict('records')
+
+
 
 

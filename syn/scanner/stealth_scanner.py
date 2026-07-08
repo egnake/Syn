@@ -1,4 +1,4 @@
-﻿"""
+"""
 SYN - Gizli (Stealth) Scapy Tarama Motoru
 """
 
@@ -33,7 +33,7 @@ class StealthScanner(BaseScanner):
         }
         
         if self.scan_type not in self.scan_info:
-            logger.warning(f"GeÃ§ersiz tarama tipi ({self.scan_type}). VarsayÄ±lan SYN (S) moduna geÃ§iliyor.")
+            logger.warning(f"[MODULE] Invalid scan flag ({self.scan_type}). Defaulting to SYN stealth (S).")
             self.scan_type = "S"
 
     def _scan_port_worker(self, port: int, results_queue: Queue):
@@ -42,9 +42,14 @@ class StealthScanner(BaseScanner):
         ip_layer = IP(dst=self.target, ttl=128)
         tcp_layer = TCP(dport=port, flags=tcp_flag, sport=42000)
         
-        start_time = time.time()
-        response = sr1(ip_layer / tcp_layer, timeout=2.0, verbose=0)
-        end_time = time.time()
+        try:
+            start_time = time.time()
+            response = sr1(ip_layer / tcp_layer, timeout=2.0, verbose=0)
+            end_time = time.time()
+        except ValueError as e:
+            # Scapy 'Microsoft KM-TEST Loopback Adapter' not found hatasını handle et
+            response = None
+            end_time = time.time()
         
         result = {
             'port': port, 
@@ -86,7 +91,7 @@ class StealthScanner(BaseScanner):
 
     def scan(self) -> List[Dict[str, Any]]:
         scan_name = self.scan_info[self.scan_type]["name"]
-        logger.info(f"Stealth ({scan_name}) TaramasÄ± baÅŸlatÄ±ldÄ±: {self.target} ({self.start_port}-{self.end_port})")
+        logger.info(f"[EXEC] Commencing Stealth TCP {scan_name} Scan: {self.target} ({self.start_port}-{self.end_port})")
         
         results_queue = Queue()
         threads = []
@@ -106,5 +111,7 @@ class StealthScanner(BaseScanner):
             all_results.append(results_queue.get())
             
         return all_results
+
+
 
 

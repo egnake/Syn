@@ -64,7 +64,7 @@ class AsyncScanner(BaseScanner):
         semaphore = asyncio.Semaphore(ASYNC_CONCURRENCY_LIMIT)
         tasks = [self._check_port(port, semaphore) for port in self.port_range]
         
-        logger.info(f"Asenkron TCP TaramasÄ± baÅŸlatÄ±ldÄ±: {self.target} ({self.start_port}-{self.end_port})")
+        logger.info(f"[EXEC] Commencing Async TCP Scan: {self.target} ({self.start_port}-{self.end_port})")
         results = await asyncio.gather(*tasks)
         return list(results)
 
@@ -81,5 +81,7 @@ class AsyncScanner(BaseScanner):
             return results
         finally:
             loop.close()
+
+
 
 

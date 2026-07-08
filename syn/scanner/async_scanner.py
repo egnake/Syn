@@ -11,7 +11,7 @@ from syn.core.logger import logger
 
 class AsyncScanner(BaseScanner):
     """
-    Hedefteki portlarÄ±n durumunu saniyede binlerce port hÄ±zÄ±nda kontrol eden 
+    Hedefteki portlarÄ±n Stateunu saniyede binlerce port hÄ±zÄ±nda kontrol eden 
     asenkronTCP tarayÄ±cÄ± motoru. (HÄ±zlÄ± keÅŸif iÃ§in)
     """
     
@@ -22,7 +22,7 @@ class AsyncScanner(BaseScanner):
         async with semaphore:
             result = {
                 'port': port, 
-                'status': 'YANIT_YOK', 
+                'status': 'NO_RESPONSE', 
                 'latency_ms': -1.0, 
                 'ttl': -1, 
                 'tcp_flags': None, 
@@ -31,33 +31,34 @@ class AsyncScanner(BaseScanner):
             
             start_time = time.time()
             try:
-
                 reader, writer = await asyncio.wait_for(
                     asyncio.open_connection(self.target, port), 
                     timeout=ASYNC_TIMEOUT
                 )
+            except (asyncio.TimeoutError, ConnectionRefusedError, OSError):
+                result['status'] = 'CLOSED'
+                return result
                 
-                end_time = time.time()
-                result['status'] = 'AÃ‡IK'
-                result['latency_ms'] = (end_time - start_time) * 1000
+            end_time = time.time()
+            result['status'] = 'OPEN'
+            result['latency_ms'] = (end_time - start_time) * 1000
 
+            try:
+                writer.write(b'\r\n')
+                await writer.drain()
+                
+                banner_bytes = await asyncio.wait_for(reader.read(1024), timeout=1.0)
+                if banner_bytes:
+                    result['banner'] = banner_bytes.decode('utf-8', errors='ignore').strip()
+            except Exception:
+                pass
+            finally:
                 try:
-                    writer.write(b'\r\n')
-                    await writer.drain()
-                    
-                    banner_bytes = await asyncio.wait_for(reader.read(1024), timeout=1.0)
-                    if banner_bytes:
-                        result['banner'] = banner_bytes.decode('utf-8', errors='ignore').strip()
+                    writer.close()
+                    await writer.wait_closed()
                 except Exception:
                     pass
-                
-                writer.close()
-                await writer.wait_closed()
-                
-            except (asyncio.TimeoutError, ConnectionRefusedError, OSError):
-
-                result['status'] = 'KAPALI'
-                
+            
             return result
 
     async def _run_scan_async(self) -> List[Dict[str, Any]]:
@@ -81,6 +82,9 @@ class AsyncScanner(BaseScanner):
             return results
         finally:
             loop.close()
+
+
+
 
 
 

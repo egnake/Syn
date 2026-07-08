@@ -1,4 +1,4 @@
-"""
+﻿"""
 SYN - Gizli (Stealth) Scapy Tarama Motoru
 """
 
@@ -53,7 +53,7 @@ class StealthScanner(BaseScanner):
         
         result = {
             'port': port, 
-            'status': 'YANIT_YOK', 
+            'status': 'NO_RESPONSE', 
             'latency_ms': -1.0, 
             'ttl': -1, 
             'tcp_flags': None, 
@@ -70,11 +70,11 @@ class StealthScanner(BaseScanner):
             
             if self.scan_type == "S":
                 if response[TCP].flags == 0x12: # SYN/ACK
-                    result['status'] = 'AÃ‡IK'
+                    result['status'] = 'OPEN'
 
                     sr1(IP(dst=self.target)/TCP(dport=port, flags="R", sport=42000, ack=(response[TCP].seq + 1)), timeout=0.1, verbose=0)
                 elif response[TCP].flags == 0x14: # RST
-                    result['status'] = 'KAPALI'
+                    result['status'] = 'CLOSED'
             elif self.scan_type == "A":
                 if not response.haslayer(TCP): 
                     result['status'] = 'FILTRELENMIS'
@@ -82,10 +82,10 @@ class StealthScanner(BaseScanner):
                     result['status'] = 'FILTRELENMEMIS'
             elif self.scan_type in ["F", "X", "N"]:
                 if response[TCP].flags == 0x14: # RST
-                    result['status'] = 'KAPALI'
+                    result['status'] = 'CLOSED'
         else:
             if self.scan_type in ["F", "X", "N"]:
-                result['status'] = 'AÃ‡IK | FÄ°LTRELÄ°'
+                result['status'] = 'OPEN | FILTERED'
         
         results_queue.put(result)
 
@@ -111,6 +111,9 @@ class StealthScanner(BaseScanner):
             all_results.append(results_queue.get())
             
         return all_results
+
+
+
 
 
 

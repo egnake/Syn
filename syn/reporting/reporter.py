@@ -20,18 +20,18 @@ class Reporter:
         
         table = Table(title="SYN - GeliÃ…Å¸miÃ…Å¸ Tarama ve YZ Analiz Sonuçları", show_header=True, header_style="bold magenta")
         table.add_column("Port", justify="right", style="cyan", no_wrap=True)
-        table.add_column("Durum", style="green")
-        table.add_column("Servis / Banner", style="yellow")
-        table.add_column("YZ OS Tahmini", style="blue")
-        table.add_column("Risk / Aksiyon", style="red")
+        table.add_column("State", style="green")
+        table.add_column("Service / Banner", style="yellow")
+        table.add_column("AI OS Guess", style="blue")
+        table.add_column("Risk / Action", style="red")
         
         kritik_bulundu = False
         
         for res in analyzed_results:
             port_str = str(res.get('port', 'N/A'))
-            status = res.get('status', 'Bilinmiyor')
+            status = res.get('status', 'Unknown')
 
-            if status not in ['AÇIK', 'AÇIK | FİLTRELİ']:
+            if status not in ['OPEN', 'OPEN | FILTERED']:
                 continue
                 
             banner = res.get('banner', '')
@@ -39,7 +39,7 @@ class Reporter:
             if not banner_display:
                 banner_display = "-"
                 
-            os_tahmini = res.get('ai_os_tahmini', 'Bilinmiyor')
+            os_tahmini = res.get('ai_os_tahmini', 'Unknown')
             if isinstance(os_tahmini, list) or isinstance(os_tahmini, np.ndarray):
                  os_tahmini = str(os_tahmini[0])
             
@@ -47,28 +47,28 @@ class Reporter:
             karar = risk_analizi['karar']
             
             risk_str = ""
-            if karar != 'GEREK YOK':
+            if karar != 'NO_ACTION':
                 kritik_bulundu = True
-                if karar == 'KRİTİK RİSK' or karar == 'KRİTİK':
+                if karar == 'CRITICAL RISK' or karar == 'KRİTİK':
                     risk_str = f"[bold red]! {karar} ![/bold red]"
-                elif karar == 'YÜKSEK RİSK' or karar == 'YÜKSEK':
+                elif karar == 'HIGH RISK' or karar == 'YÜKSEK':
                     risk_str = f"[red]{karar}[/red]"
-                elif karar == 'ORTA RİSK' or karar == 'ORTA':
+                elif karar == 'MEDIUM RISK' or karar == 'ORTA':
                     risk_str = f"[dark_orange]{karar}[/dark_orange]"
                 else:
                     risk_str = f"[yellow]{karar}[/yellow]"
             else:
-                risk_str = "[green]TEMİZ[/green]"
+                risk_str = "[green]SAFE[/green]"
 
             table.add_row(port_str, status, banner_display, os_tahmini, risk_str)
 
         console.print(table)
         
         if kritik_bulundu:
-            console.print("\n[bold red]>>> DİKKAT: KRİTİK RİSKLER VEYA ZAFİYETLER TESPİT EDİLDİ! <<<[/bold red]")
+            console.print("\n[bold red]>>> WARNING: CRITICAL RISKS OR VULNERABILITIES DETECTED! <<<[/bold red]")
             for res in analyzed_results:
                 risk_analizi = self.cve_engine.evaluate_result(res)
-                if risk_analizi['karar'] not in ['GEREK YOK', 'DÜÃ…ÂÜK RİSK', 'DÜÃ…ÂÜK']:
+                if risk_analizi['karar'] not in ['NO_ACTION', 'DÜÃ…ÂÜK RİSK', 'DÜÃ…ÂÜK']:
                     console.print(f"\n[bold yellow]Port {res['port']} Detaylı Analiz:[/bold yellow]")
                     console.print(f"Uyarı: {risk_analizi['uyari']}")
                     console.print(f"Öneri: {risk_analizi['onerisi']}")
@@ -91,6 +91,9 @@ class Reporter:
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(clean_results, f, ensure_ascii=False, indent=4)
         logger.info(f"Rapor {filename} dosyasına kaydedildi.")
+
+
+
 
 
 

@@ -15,7 +15,7 @@ MODEL_SCALER_FILE = os.path.join(MODELS_DIR, 'umay_mk25_scaler.joblib')
 ANOMALY_THRESHOLD = -0.15
 
 ASYNC_TIMEOUT = 1.5  # Saniye cinsinden asenkron TCP baÄŸlantÄ± zaman aÅŸÄ±mÄ±
-ASYNC_CONCURRENCY_LIMIT = 500  # AynÄ± anda aÃ§Ä±k olabilecek maksimum baÄŸlantÄ± sayÄ±sÄ±
+ASYNC_CONCURRENCY_LIMIT = 100  # AynÄ± anda aÃ§Ä±k olabilecek maksimum baÄŸlantÄ± sayÄ±sÄ±
 
 SERVICE_PROBES: Dict[int, List[str]] = {
     80: [
@@ -49,6 +49,9 @@ SERVICE_PROBES: Dict[int, List[str]] = {
 }
 
 QUICK_SCAN_PORTS = [21, 22, 23, 80, 135, 139, 443, 445, 3389]
+
+
+
 
 
 

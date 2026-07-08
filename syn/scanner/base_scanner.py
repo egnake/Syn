@@ -21,9 +21,12 @@ class BaseScanner(ABC):
     def scan(self) -> List[Dict[str, Any]]:
         """
         TaramayÄ± baÅŸlatÄ±r ve sonuÃ§larÄ± standart bir sÃ¶zlÃ¼k listesi olarak dÃ¶ndÃ¼rÃ¼r.
-        Ã–rnek DÃ¶nÃ¼ÅŸ: [{'port': 80, 'status': 'AÃ‡IK', 'latency_ms': 15.2, 'ttl': 64, 'banner': 'nginx/1.18.0'}]
+        Ã–rnek DÃ¶nÃ¼ÅŸ: [{'port': 80, 'status': 'OPEN', 'latency_ms': 15.2, 'ttl': 64, 'banner': 'nginx/1.18.0'}]
         """
         pass
+
+
+
 
 
 

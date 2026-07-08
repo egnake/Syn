@@ -1,4 +1,4 @@
-"""
+﻿"""
 SYN - CLI (Komut SatÄ±rÄ± ArayÃ¼zÃ¼)
 """
 
@@ -148,7 +148,7 @@ Examples:
         initial_results = stealth_scanner.scan()
         
         initial_analyzed = analyzer.analyze(initial_results)
-        open_ports_count = sum(1 for res in initial_analyzed if res['status'] == 'AÃ‡IK')
+        open_ports_count = sum(1 for res in initial_analyzed if res['status'] == 'OPEN')
         ttl_values = [res['ttl'] for res in initial_analyzed if res['ttl'] > 0]
         
         chosen_scan_type = "ASYNC"
@@ -161,7 +161,7 @@ Examples:
             elif 50 < avg_ttl <= 64:
                 os_tahmini = "Linux"
 
-        if open_ports_count == 0 and len(initial_analyzed) > 0 and all(res['status'] in ['YANIT_YOK', 'KAPALI'] for res in initial_analyzed):
+        if open_ports_count == 0 and len(initial_analyzed) > 0 and all(res['status'] in ['NO_RESPONSE', 'CLOSED'] for res in initial_analyzed):
             logger.info("[AI_DECISION] Zero footprint detected. Suspected stateful firewall. Pivoting to FIN scan.")
             chosen_scan_type = "F"
         elif os_tahmini == "Windows":
@@ -178,7 +178,7 @@ Examples:
         
         logger.info("[EXEC] Commencing deep service fingerprinting...")
         for res in all_results:
-            if res['status'] == 'AÃ‡IK':
+            if res['status'] == 'OPEN':
                 if not res.get('banner'):
                     res['banner'] = banner_grabber.get_banner(res['port'])
     else:
@@ -187,7 +187,7 @@ Examples:
         
         logger.info("[EXEC] Commencing deep service fingerprinting...")
         for res in all_results:
-            if res['status'] == 'AÃ‡IK':
+            if res['status'] == 'OPEN':
                 res['banner'] = banner_grabber.get_banner(res['port'])
 
     analyzed_results = analyzer.analyze(all_results)
@@ -201,6 +201,9 @@ Examples:
 
 if __name__ == "__main__":
     main()
+
+
+
 
 
 

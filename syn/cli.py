@@ -1,4 +1,4 @@
-﻿"""
+"""
 SYN - CLI (Komut SatÄ±rÄ± ArayÃ¼zÃ¼)
 """
 
@@ -18,10 +18,36 @@ from syn.ai.model_manager import ModelManager
 from syn.ai.analyzer import AIAnalyzer
 from syn.reporting.reporter import Reporter
 
+import random
+
+ASCII_ARTS = [
+    r"""
+  ____   __   __  _   _ 
+ / ___|  \ \ / / | \ | |
+ \___ \   \ V /  |  \| |
+  ___) |   | |   | |\  |
+ |____/    |_|   |_| \_|
+    """,
+    r"""
+   _____ __  __ _   _ 
+  / ____|  \/  | \ | |
+ | (___ | \  / |  \| |
+  \___ \| |\/| | . ` |
+  ____) | |  | | |\  |
+ |_____/|_|  |_|_| \_|
+    """,
+    r"""
+  ___ _   _ _  _ 
+ / __| | | | \| |
+ \__ \ |_| | .` |
+ |___/\__,_|_|\_|
+    """
+]
+
 def interactive_wizard():
-    console.print("\n[bold magenta]=========================================[/bold magenta]")
-    console.print("[bold magenta]          SYN INTERACTIVE SETUP          [/bold magenta]")
-    console.print("[bold magenta]=========================================[/bold magenta]\n")
+    art = random.choice(ASCII_ARTS)
+    console.print(f"[bold magenta]{art}[/bold magenta]")
+    console.print("[bold cyan]       [ INTERACTIVE SETUP ]       [/bold cyan]\n")
 
     target = Prompt.ask("[bold cyan][?][/bold cyan] Target IP/Hostname", default="127.0.0.1")
     
@@ -100,9 +126,7 @@ Examples:
             parser.print_help(sys.stderr)
             sys.exit(1)
 
-    console.print("\n[bold cyan]=========================================[/bold cyan]")
-    console.print("[bold cyan]       SYN ENGINE INITIALIZATION         [/bold cyan]")
-    console.print("[bold cyan]=========================================[/bold cyan]\n")
+    console.print("\n[bold cyan]    [ SYN ENGINE INITIALIZATION ]    [/bold cyan]\n")
 
     model_manager = ModelManager()
     classifier, anomaly_detector, scaler = model_manager.load_or_train_models()

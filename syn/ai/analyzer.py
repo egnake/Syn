@@ -1,5 +1,5 @@
 ﻿"""
-SYN - Yapay Zeka AnalizÃ¶rÃ¼
+SYN - Yapay Zeka Analizörü
 """
 
 import pandas as pd
@@ -8,7 +8,7 @@ from typing import List, Dict, Any
 from syn.core.logger import logger
 
 class AIAnalyzer:
-    """Tarama sonuÃ§larÄ±nÄ± YZ modelleri Ã¼zerinden geÃ§irerek tahminler ve anomali skorlarÄ± Ã¼retir."""
+    """Tarama sonuçlarını YZ modelleri üzerinden geçirerek tahminler ve anomali skorları üretir."""
     
     def __init__(self, classifier, anomaly_detector, scaler):
         self.classifier = classifier
@@ -37,6 +37,8 @@ class AIAnalyzer:
             df['ai_os_tahmini'] = 'HATA/YZ'
             
         return df.to_dict('records')
+
+
 
 
 

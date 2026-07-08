@@ -1,5 +1,5 @@
 ﻿"""
-SYN - CLI (Komut SatÄ±rÄ± ArayÃ¼zÃ¼)
+SYN - CLI (Komut Satırı Arayüzü)
 """
 
 import sys
@@ -201,6 +201,8 @@ Examples:
 
 if __name__ == "__main__":
     main()
+
+
 
 
 

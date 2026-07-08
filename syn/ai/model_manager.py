@@ -1,5 +1,5 @@
 ﻿"""
-SYN - Yapay Zeka Model YÃ¶neticisi
+SYN - Yapay Zeka Model Yöneticisi
 """
 
 import os
@@ -12,7 +12,7 @@ from syn.core.config import MODEL_CLASSIFIER_FILE, MODEL_ANOMALY_FILE, MODEL_SCA
 from syn.core.logger import logger
 
 class ModelManager:
-    """Yapay Zeka (Makine Ã–ÄŸrenimi) modellerinin yÃ¼klenmesi ve eÄŸitilmesinden sorumludur."""
+    """Yapay Zeka (Makine Öğrenimi) modellerinin yüklenmesi ve eğitilmesinden sorumludur."""
     
     def __init__(self):
         self.classifier = None
@@ -20,7 +20,7 @@ class ModelManager:
         self.scaler = None
 
     def load_or_train_models(self):
-        """KayÄ±tlÄ± modelleri yÃ¼kler veya ilk kez eÄŸitir ve kaydeder."""
+        """Kayıtlı modelleri yükler veya ilk kez eğitir ve kaydeder."""
         try:
             logger.info("[SYSTEM] Loading AI inference models...")
             self.classifier = joblib.load(MODEL_CLASSIFIER_FILE)
@@ -34,11 +34,11 @@ class ModelManager:
         return self.classifier, self.anomaly_detector, self.scaler
 
     def _train_models(self):
-        """TTL 127 ve 63 gibi yakÄ±n deÄŸerler ile gÃ¼Ã§lendirilmiÅŸ eÄŸitim verisi ile modelleri eÄŸitir."""
+        """TTL 127 ve 63 gibi yakın değerler ile güçlendirilmiş eğitim verisi ile modelleri eğitir."""
         training_data = [
             [64, 5.0, 'Linux/64'], [64, 10.0, 'Linux/64'], [63, 15.0, 'Linux/64'], [65, 30.0, 'Linux/64'],
             [128, 5.0, 'Windows/128'], [128, 10.0, 'Windows/128'], [127, 20.0, 'Windows/128'], [126, 50.0, 'Windows/128'],
-            [255, 10.0, 'AÄŸ CihazÄ±/255'], [254, 50.0, 'AÄŸ CihazÄ±/255'], [255, 100.0, 'AÄŸ CihazÄ±/255'],
+            [255, 10.0, 'Ağ Cihazı/255'], [254, 50.0, 'Ağ Cihazı/255'], [255, 100.0, 'Ağ Cihazı/255'],
         ]
         df = pd.DataFrame(training_data, columns=['ttl', 'latency_ms', 'OS'])
         X = df[['ttl', 'latency_ms']]
@@ -58,6 +58,8 @@ class ModelManager:
         joblib.dump(self.anomaly_detector, MODEL_ANOMALY_FILE)
         joblib.dump(self.scaler, MODEL_SCALER_FILE)
         logger.info("[AI_TRAIN] Anomaly Detector and Scaler successfully dumped.")
+
+
 
 
 

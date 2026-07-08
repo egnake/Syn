@@ -1,5 +1,5 @@
 ﻿"""
-SYN - HÄ±zlÄ± Asenkron Tarama Motoru
+SYN - Hızlı Asenkron Tarama Motoru
 """
 
 import asyncio
@@ -11,8 +11,8 @@ from syn.core.logger import logger
 
 class AsyncScanner(BaseScanner):
     """
-    Hedefteki portlarÄ±n Stateunu saniyede binlerce port hÄ±zÄ±nda kontrol eden 
-    asenkronTCP tarayÄ±cÄ± motoru. (HÄ±zlÄ± keÅŸif iÃ§in)
+    Hedefteki portların Stateunu saniyede binlerce port hızında kontrol eden 
+    asenkronTCP tarayıcı motoru. (Hızlı keşif için)
     """
     
     def __init__(self, target: str, start_port: int, end_port: int):
@@ -71,8 +71,8 @@ class AsyncScanner(BaseScanner):
 
     def scan(self) -> List[Dict[str, Any]]:
         """
-        BaseScanner arayÃ¼zÃ¼nÃ¼n senkron olarak uygulanmasÄ±. 
-        Arkada asenkron event loop Ã§alÄ±ÅŸtÄ±rÄ±r.
+        BaseScanner arayüzünün senkron olarak uygulanması. 
+        Arkada asenkron event loop çalıştırır.
         """
 
         loop = asyncio.new_event_loop()
@@ -82,6 +82,8 @@ class AsyncScanner(BaseScanner):
             return results
         finally:
             loop.close()
+
+
 
 
 

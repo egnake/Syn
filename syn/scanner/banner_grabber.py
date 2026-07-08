@@ -7,7 +7,7 @@ from syn.core.config import SERVICE_PROBES
 
 class BannerGrabber:
     """
-    Belirtilen hedefe servislere Ã¶zel problar gÃ¶ndererek detaylÄ± 
+    Belirtilen hedefe servislere özel problar göndererek detaylı 
     banner bilgisini yakalar.
     """
     
@@ -51,16 +51,18 @@ class BannerGrabber:
             except (asyncio.TimeoutError, ConnectionRefusedError, OSError):
                 continue
 
-        return "Bilinmiyor (Banner AlÄ±namadÄ±)"
+        return "Unknown (No Banner)"
 
     def get_banner(self, port: int) -> str:
-        """Asenkron metodu senkron olarak Ã§aÄŸÄ±rÄ±r."""
+        """Asenkron metodu senkron olarak çağırır."""
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             return loop.run_until_complete(self.get_banner_async(port))
         finally:
             loop.close()
+
+
 
 
 

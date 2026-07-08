@@ -1,5 +1,5 @@
 ﻿"""
-SYN - GeliÅŸmiÅŸ Loglama ve Raporlama AltyapÄ±sÄ±
+SYN - Gelişmiş Loglama ve Raporlama Altyapısı
 """
 
 import logging
@@ -36,6 +36,8 @@ class UmayLogger:
         return self.logger
 
 logger = UmayLogger().get_logger()
+
+
 
 
 

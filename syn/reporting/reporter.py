@@ -10,7 +10,7 @@ from rich.table import Table
 from syn.vulnerability.cve_engine import CVEEngine
 
 class Reporter:
-    """Tarama sonuÃ§larÄ±nÄ± iÅŸleyerek konsola basar veya JSON/HTML formatÄ±nda dÄ±ÅŸa aktarÄ±r."""
+    """Tarama sonuçlarını işleyerek konsola basar veya JSON/HTML formatında dışa aktarır."""
     
     def __init__(self):
         self.cve_engine = CVEEngine()
@@ -49,11 +49,11 @@ class Reporter:
             risk_str = ""
             if karar != 'NO_ACTION':
                 kritik_bulundu = True
-                if karar == 'CRITICAL RISK' or karar == 'KRİTİK':
+                if karar == 'CRITICAL RISK' or karar == 'CRITICAL RISK':
                     risk_str = f"[bold red]! {karar} ![/bold red]"
-                elif karar == 'HIGH RISK' or karar == 'YÜKSEK':
+                elif karar == 'HIGH RISK' or karar == 'HIGH RISK':
                     risk_str = f"[red]{karar}[/red]"
-                elif karar == 'MEDIUM RISK' or karar == 'ORTA':
+                elif karar == 'MEDIUM RISK' or karar == 'MEDIUM RISK':
                     risk_str = f"[dark_orange]{karar}[/dark_orange]"
                 else:
                     risk_str = f"[yellow]{karar}[/yellow]"
@@ -71,7 +71,7 @@ class Reporter:
                 if risk_analizi['karar'] not in ['NO_ACTION', 'DÜÃ…ÂÜK RİSK', 'DÜÃ…ÂÜK']:
                     console.print(f"\n[bold yellow]Port {res['port']} Detaylı Analiz:[/bold yellow]")
                     console.print(f"Uyarı: {risk_analizi['uyari']}")
-                    console.print(f"Öneri: {risk_analizi['onerisi']}")
+                    console.print(f"ÖAction: {risk_analizi['onerisi']}")
 
     def export_json(self, results: List[Dict[str, Any]], filename: str = "umay_report.json"):
         """Sonuçları JSON dosyası olarak dıÃ…Å¸a aktarır."""
@@ -91,6 +91,8 @@ class Reporter:
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(clean_results, f, ensure_ascii=False, indent=4)
         logger.info(f"Rapor {filename} dosyasına kaydedildi.")
+
+
 
 
 

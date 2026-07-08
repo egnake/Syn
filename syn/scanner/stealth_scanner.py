@@ -15,10 +15,10 @@ conf.verb = 0
 
 class StealthScanner(BaseScanner):
     """
-    Scapy kÃ¼tÃ¼phanesini kullanarak SYN, ACK, FIN, XMAS, NULL taramalarÄ±
-    yapan, gÃ¼venlik duvarlarÄ±nÄ± aÅŸmayÄ± hedefleyen tarayÄ±cÄ± motoru.
-    AynÄ± zamanda hedefin TTL ve TCP Flag bilgilerini toplayarak 
-    YZ analizi iÃ§in zemin hazÄ±rlar.
+    Scapy kütüphanesini kullanarak SYN, ACK, FIN, XMAS, NULL taramaları
+    yapan, güvenlik duvarlarını aşmayı hedefleyen tarayıcı motoru.
+    Aynı zamanda hedefin TTL ve TCP Flag bilgilerini toplayarak 
+    YZ analizi için zemin hazırlar.
     """
     
     def __init__(self, target: str, start_port: int, end_port: int, scan_type: str = "S"):
@@ -97,7 +97,7 @@ class StealthScanner(BaseScanner):
         threads = []
         all_results = []
 
-        for port in tqdm(self.port_range, desc=f"{scan_name} TaramasÄ±", unit="port"):
+        for port in tqdm(self.port_range, desc=f"{scan_name} Taraması", unit="port"):
             thread = threading.Thread(target=self._scan_port_worker, args=(port, results_queue))
             threads.append(thread)
             thread.start()
@@ -111,6 +111,8 @@ class StealthScanner(BaseScanner):
             all_results.append(results_queue.get())
             
         return all_results
+
+
 
 
 

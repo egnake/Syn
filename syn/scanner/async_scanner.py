@@ -1,0 +1,85 @@
+﻿"""
+SYN - HÄ±zlÄ± Asenkron Tarama Motoru
+"""
+
+import asyncio
+import time
+from typing import List, Dict, Any
+from .base_scanner import BaseScanner
+from syn.core.config import ASYNC_TIMEOUT, ASYNC_CONCURRENCY_LIMIT
+from syn.core.logger import logger
+
+class AsyncScanner(BaseScanner):
+    """
+    Hedefteki portlarÄ±n durumunu saniyede binlerce port hÄ±zÄ±nda kontrol eden 
+    asenkronTCP tarayÄ±cÄ± motoru. (HÄ±zlÄ± keÅŸif iÃ§in)
+    """
+    
+    def __init__(self, target: str, start_port: int, end_port: int):
+        super().__init__(target, start_port, end_port)
+        
+    async def _check_port(self, port: int, semaphore: asyncio.Semaphore) -> Dict[str, Any]:
+        async with semaphore:
+            result = {
+                'port': port, 
+                'status': 'YANIT_YOK', 
+                'latency_ms': -1.0, 
+                'ttl': -1, 
+                'tcp_flags': None, 
+                'banner': ''
+            }
+            
+            start_time = time.time()
+            try:
+                # Asenkron TCP baÄŸlantÄ± denemesi
+                reader, writer = await asyncio.wait_for(
+                    asyncio.open_connection(self.target, port), 
+                    timeout=ASYNC_TIMEOUT
+                )
+                
+                end_time = time.time()
+                result['status'] = 'AÃ‡IK'
+                result['latency_ms'] = (end_time - start_time) * 1000
+                
+                # Banner kapma denemesi (EÄŸer aÃ§Ä±k bulursa Ã§ok kÄ±sa bekleyip banner almayÄ± deneriz)
+                try:
+                    writer.write(b'\r\n')
+                    await writer.drain()
+                    
+                    banner_bytes = await asyncio.wait_for(reader.read(1024), timeout=1.0)
+                    if banner_bytes:
+                        result['banner'] = banner_bytes.decode('utf-8', errors='ignore').strip()
+                except Exception:
+                    pass
+                
+                writer.close()
+                await writer.wait_closed()
+                
+            except (asyncio.TimeoutError, ConnectionRefusedError, OSError):
+                # Timeout veya baÄŸlantÄ± reddi durumlarÄ±nda kapalÄ±/filtreli varsayÄ±lÄ±r
+                result['status'] = 'KAPALI'
+                
+            return result
+
+    async def _run_scan_async(self) -> List[Dict[str, Any]]:
+        semaphore = asyncio.Semaphore(ASYNC_CONCURRENCY_LIMIT)
+        tasks = [self._check_port(port, semaphore) for port in self.port_range]
+        
+        logger.info(f"Asenkron TCP TaramasÄ± baÅŸlatÄ±ldÄ±: {self.target} ({self.start_port}-{self.end_port})")
+        results = await asyncio.gather(*tasks)
+        return list(results)
+
+    def scan(self) -> List[Dict[str, Any]]:
+        """
+        BaseScanner arayÃ¼zÃ¼nÃ¼n senkron olarak uygulanmasÄ±. 
+        Arkada asenkron event loop Ã§alÄ±ÅŸtÄ±rÄ±r.
+        """
+        # Event loop Ã§atÄ±ÅŸmalarÄ±nÄ± engellemek iÃ§in yeni bir loop oluÅŸturuyoruz
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            results = loop.run_until_complete(self._run_scan_async())
+            return results
+        finally:
+            loop.close()
+

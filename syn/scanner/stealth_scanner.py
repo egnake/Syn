@@ -11,7 +11,6 @@ from scapy.all import IP, TCP, sr1, conf
 from .base_scanner import BaseScanner
 from syn.core.logger import logger
 
-# Scapy'nin gereksiz Ã§Ä±ktÄ±larÄ±nÄ± engellemek iÃ§in
 conf.verb = 0
 
 class StealthScanner(BaseScanner):
@@ -67,7 +66,7 @@ class StealthScanner(BaseScanner):
             if self.scan_type == "S":
                 if response[TCP].flags == 0x12: # SYN/ACK
                     result['status'] = 'AÃ‡IK'
-                    # RST gÃ¶ndererek baÄŸlantÄ±yÄ± kapat (Gizlilik iÃ§in)
+
                     sr1(IP(dst=self.target)/TCP(dport=port, flags="R", sport=42000, ack=(response[TCP].seq + 1)), timeout=0.1, verbose=0)
                 elif response[TCP].flags == 0x14: # RST
                     result['status'] = 'KAPALI'
@@ -92,14 +91,12 @@ class StealthScanner(BaseScanner):
         results_queue = Queue()
         threads = []
         all_results = []
-        
-        # Scapy ile Ã§ok yÃ¼ksek thread sayÄ±sÄ± sistemi tÄ±kayabileceÄŸi iÃ§in dikkatli kullanÄ±yoruz
+
         for port in tqdm(self.port_range, desc=f"{scan_name} TaramasÄ±", unit="port"):
             thread = threading.Thread(target=self._scan_port_worker, args=(port, results_queue))
             threads.append(thread)
             thread.start()
-            
-            # AÅŸÄ±rÄ± thread birikmesini engellemek iÃ§in kÃ¼Ã§Ã¼k bir gecikme
+
             time.sleep(0.01) 
             
         for thread in threads:
@@ -109,4 +106,5 @@ class StealthScanner(BaseScanner):
             all_results.append(results_queue.get())
             
         return all_results
+
 

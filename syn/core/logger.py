@@ -14,15 +14,13 @@ class UmayLogger:
     def __init__(self, log_level=logging.INFO):
         self.logger = logging.getLogger("syn")
         self.logger.setLevel(log_level)
-        
-        # EÄŸer zaten handler varsa tekrar ekleme
+
         if not self.logger.handlers:
-            # Console Handler (Rich)
+
             rich_handler = RichHandler(console=console, rich_tracebacks=True, show_time=True, show_path=False)
             rich_handler.setLevel(log_level)
             self.logger.addHandler(rich_handler)
-            
-            # File Handler
+
             log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
             os.makedirs(log_dir, exist_ok=True)
             log_file = os.path.join(log_dir, f"umay_scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
@@ -37,6 +35,6 @@ class UmayLogger:
     def get_logger(self):
         return self.logger
 
-# Global logger instance
 logger = UmayLogger().get_logger()
+
 

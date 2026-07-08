@@ -1,10 +1,10 @@
-"""
-SYN - CLI (Komut Satırı Arayüzü)
+﻿"""
+SYN - CLI (Komut SatÄ±rÄ± ArayÃ¼zÃ¼)
 """
 
 import sys
 import logging
-# Scapy pcap uyarÄ±larÄ±nÄ± engellemek iÃ§in en tepede log seviyesini CRITICAL yapÄ±yoruz
+
 logging.getLogger("scapy").setLevel(logging.CRITICAL)
 
 import argparse
@@ -124,7 +124,7 @@ Examples:
         initial_results = stealth_scanner.scan()
         
         initial_analyzed = analyzer.analyze(initial_results)
-        open_ports_count = sum(1 for res in initial_analyzed if res['status'] == 'AÇIK')
+        open_ports_count = sum(1 for res in initial_analyzed if res['status'] == 'AÃ‡IK')
         ttl_values = [res['ttl'] for res in initial_analyzed if res['ttl'] > 0]
         
         chosen_scan_type = "ASYNC"
@@ -154,7 +154,7 @@ Examples:
         
         logger.info("[EXEC] Commencing deep service fingerprinting...")
         for res in all_results:
-            if res['status'] == 'AÇIK':
+            if res['status'] == 'AÃ‡IK':
                 if not res.get('banner'):
                     res['banner'] = banner_grabber.get_banner(res['port'])
     else:
@@ -163,7 +163,7 @@ Examples:
         
         logger.info("[EXEC] Commencing deep service fingerprinting...")
         for res in all_results:
-            if res['status'] == 'AÇIK':
+            if res['status'] == 'AÃ‡IK':
                 res['banner'] = banner_grabber.get_banner(res['port'])
 
     analyzed_results = analyzer.analyze(all_results)
@@ -177,3 +177,4 @@ Examples:
 
 if __name__ == "__main__":
     main()
+

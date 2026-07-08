@@ -1,4 +1,4 @@
-"""
+﻿"""
 SYN - Raporlama Motoru
 """
 
@@ -10,15 +10,15 @@ from rich.table import Table
 from syn.vulnerability.cve_engine import CVEEngine
 
 class Reporter:
-    """Tarama sonuçlarını işleyerek konsola basar veya JSON/HTML formatında dışa aktarır."""
+    """Tarama sonuÃ§larÄ±nÄ± iÅŸleyerek konsola basar veya JSON/HTML formatÄ±nda dÄ±ÅŸa aktarÄ±r."""
     
     def __init__(self):
         self.cve_engine = CVEEngine()
 
     def print_console_report(self, analyzed_results: List[Dict[str, Any]]):
-        """SonuÃ§larÄ± Rich tablosu olarak profesyonelce konsola yazdÄ±rÄ±r."""
+        """SonuÃƒÂ§larÃ„Â± Rich tablosu olarak profesyonelce konsola yazdÃ„Â±rÃ„Â±r."""
         
-        table = Table(title="SYN - GeliÅŸmiÅŸ Tarama ve YZ Analiz SonuÃ§larÄ±", show_header=True, header_style="bold magenta")
+        table = Table(title="SYN - GeliÃ…Å¸miÃ…Å¸ Tarama ve YZ Analiz SonuÃƒÂ§larÃ„Â±", show_header=True, header_style="bold magenta")
         table.add_column("Port", justify="right", style="cyan", no_wrap=True)
         table.add_column("Durum", style="green")
         table.add_column("Servis / Banner", style="yellow")
@@ -30,9 +30,8 @@ class Reporter:
         for res in analyzed_results:
             port_str = str(res.get('port', 'N/A'))
             status = res.get('status', 'Bilinmiyor')
-            
-            # Sadece aÃ§Ä±k veya filtreli portlarÄ± tabloda gÃ¶sterelim ki kalabalÄ±k olmasÄ±n
-            if status not in ['AÃ‡IK', 'AÃ‡IK | FÄ°LTRELÄ°']:
+
+            if status not in ['AÃƒâ€¡IK', 'AÃƒâ€¡IK | FÃ„Â°LTRELÃ„Â°']:
                 continue
                 
             banner = res.get('banner', '')
@@ -50,34 +49,33 @@ class Reporter:
             risk_str = ""
             if karar != 'GEREK YOK':
                 kritik_bulundu = True
-                if karar == 'KRÄ°TÄ°K RÄ°SK' or karar == 'KRÄ°TÄ°K':
+                if karar == 'KRÃ„Â°TÃ„Â°K RÃ„Â°SK' or karar == 'KRÃ„Â°TÃ„Â°K':
                     risk_str = f"[bold red]! {karar} ![/bold red]"
-                elif karar == 'YÃœKSEK RÄ°SK' or karar == 'YÃœKSEK':
+                elif karar == 'YÃƒÅ“KSEK RÃ„Â°SK' or karar == 'YÃƒÅ“KSEK':
                     risk_str = f"[red]{karar}[/red]"
-                elif karar == 'ORTA RÄ°SK' or karar == 'ORTA':
+                elif karar == 'ORTA RÃ„Â°SK' or karar == 'ORTA':
                     risk_str = f"[dark_orange]{karar}[/dark_orange]"
                 else:
                     risk_str = f"[yellow]{karar}[/yellow]"
             else:
-                risk_str = "[green]TEMÄ°Z[/green]"
+                risk_str = "[green]TEMÃ„Â°Z[/green]"
 
             table.add_row(port_str, status, banner_display, os_tahmini, risk_str)
 
         console.print(table)
         
         if kritik_bulundu:
-            console.print("\n[bold red]>>> DÄ°KKAT: KRÄ°TÄ°K RÄ°SKLER VEYA ZAFÄ°YETLER TESPÄ°T EDÄ°LDÄ°! <<<[/bold red]")
+            console.print("\n[bold red]>>> DÃ„Â°KKAT: KRÃ„Â°TÃ„Â°K RÃ„Â°SKLER VEYA ZAFÃ„Â°YETLER TESPÃ„Â°T EDÃ„Â°LDÃ„Â°! <<<[/bold red]")
             for res in analyzed_results:
                 risk_analizi = self.cve_engine.evaluate_result(res)
-                if risk_analizi['karar'] not in ['GEREK YOK', 'DÃœÅÃœK RÄ°SK', 'DÃœÅÃœK']:
-                    console.print(f"\n[bold yellow]Port {res['port']} DetaylÄ± Analiz:[/bold yellow]")
-                    console.print(f"UyarÄ±: {risk_analizi['uyari']}")
-                    console.print(f"Ã–neri: {risk_analizi['onerisi']}")
+                if risk_analizi['karar'] not in ['GEREK YOK', 'DÃƒÅ“Ã…ÂÃƒÅ“K RÃ„Â°SK', 'DÃƒÅ“Ã…ÂÃƒÅ“K']:
+                    console.print(f"\n[bold yellow]Port {res['port']} DetaylÃ„Â± Analiz:[/bold yellow]")
+                    console.print(f"UyarÃ„Â±: {risk_analizi['uyari']}")
+                    console.print(f"Ãƒâ€“neri: {risk_analizi['onerisi']}")
 
     def export_json(self, results: List[Dict[str, Any]], filename: str = "umay_report.json"):
-        """SonuÃ§larÄ± JSON dosyasÄ± olarak dÄ±ÅŸa aktarÄ±r."""
-        
-        # numpy tiplerini json serializable hale getirme
+        """SonuÃƒÂ§larÃ„Â± JSON dosyasÃ„Â± olarak dÃ„Â±Ã…Å¸a aktarÃ„Â±r."""
+
         clean_results = []
         for r in results:
             clean_r = r.copy()
@@ -92,5 +90,6 @@ class Reporter:
             
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(clean_results, f, ensure_ascii=False, indent=4)
-        logger.info(f"Rapor {filename} dosyasÄ±na kaydedildi.")
+        logger.info(f"Rapor {filename} dosyasÃ„Â±na kaydedildi.")
+
 

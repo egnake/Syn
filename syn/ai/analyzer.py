@@ -22,13 +22,12 @@ class AIAnalyzer:
         logger.info("YZ Ä°Ã§in Veri HazÄ±rlanÄ±yor...")
         df = pd.DataFrame(results)
         X_analysis = df[['ttl', 'latency_ms']].copy()
-        
-        # YanÄ±t alÄ±namayan portlarÄ±n TTL ve Gecikme deÄŸerlerini (0, 0) yapÄ±yoruz ki modele uygun olsun
+
         X_analysis.loc[X_analysis['ttl'] == -1, ['ttl', 'latency_ms']] = 0 
         
         try:
             X_scaled = self.scaler.transform(X_analysis)
-            # Anomali skoru (negatif deÄŸerler anomaliyi temsil eder, daha kÃ¼Ã§Ã¼k = daha anormal)
+
             df['anomaly_score'] = self.anomaly_detector.decision_function(X_scaled) 
             df['ai_os_tahmini'] = self.classifier.predict(X_analysis.values)
             logger.info("YZ Analizi BaÅŸarÄ±lÄ±: OS Tahmini ve Anomali SkorlarÄ± Eklendi.")
@@ -38,4 +37,5 @@ class AIAnalyzer:
             df['ai_os_tahmini'] = 'HATA/YZ'
             
         return df.to_dict('records')
+
 

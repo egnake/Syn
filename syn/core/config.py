@@ -5,7 +5,6 @@ SYN - YapÄ±landÄ±rma ve Sabitler
 import os
 from typing import Dict, List
 
-# --- YZ MODELLERÄ° SABÄ°TLERÄ° ---
 MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models")
 os.makedirs(MODELS_DIR, exist_ok=True)
 
@@ -15,11 +14,9 @@ MODEL_SCALER_FILE = os.path.join(MODELS_DIR, 'umay_mk25_scaler.joblib')
 
 ANOMALY_THRESHOLD = -0.15
 
-# --- TARAMA AYARLARI ---
 ASYNC_TIMEOUT = 1.5  # Saniye cinsinden asenkron TCP baÄŸlantÄ± zaman aÅŸÄ±mÄ±
 ASYNC_CONCURRENCY_LIMIT = 500  # AynÄ± anda aÃ§Ä±k olabilecek maksimum baÄŸlantÄ± sayÄ±sÄ±
 
-# --- SERVÄ°S BANNER PROBLARI ---
 SERVICE_PROBES: Dict[int, List[str]] = {
     80: [
         'GET / HTTP/1.1\r\nHost: {target}\r\nUser-Agent: syn-Scanner\r\n\r\n',
@@ -51,6 +48,6 @@ SERVICE_PROBES: Dict[int, List[str]] = {
     ]
 }
 
-# --- SMART (OTONOM) MOD AYARLARI ---
 QUICK_SCAN_PORTS = [21, 22, 23, 80, 135, 139, 443, 445, 3389]
+
 

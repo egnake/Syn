@@ -25,3 +25,4 @@ class BaseScanner(ABC):
         """
         pass
 
+

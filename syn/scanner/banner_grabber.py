@@ -23,8 +23,7 @@ class BannerGrabber:
                     asyncio.open_connection(self.target, port), 
                     timeout=2.0
                 )
-                
-                # Ä°lk baÄŸlantÄ±da hemen bir banner geliyor mu kontrol et
+
                 try:
                     initial_banner = await asyncio.wait_for(reader.read(1024), timeout=1.0)
                     if initial_banner:
@@ -34,7 +33,6 @@ class BannerGrabber:
                 except asyncio.TimeoutError:
                     pass
 
-                # EÄŸer gelmiyorsa, Ã¶zel prob'u gÃ¶nder
                 if port in [139, 445]:
                     probe_bytes = eval('b"' + probe_str + '"')
                 else:
@@ -63,4 +61,5 @@ class BannerGrabber:
             return loop.run_until_complete(self.get_banner_async(port))
         finally:
             loop.close()
+
 

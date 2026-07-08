@@ -59,3 +59,4 @@ class ModelManager:
         joblib.dump(self.scaler, MODEL_SCALER_FILE)
         logger.info(f"Anomali Modeli ve Ã–lÃ§ekleyici baÅŸarÄ±yla kaydedildi.")
 
+

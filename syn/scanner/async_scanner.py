@@ -31,7 +31,7 @@ class AsyncScanner(BaseScanner):
             
             start_time = time.time()
             try:
-                # Asenkron TCP baÄŸlantÄ± denemesi
+
                 reader, writer = await asyncio.wait_for(
                     asyncio.open_connection(self.target, port), 
                     timeout=ASYNC_TIMEOUT
@@ -40,8 +40,7 @@ class AsyncScanner(BaseScanner):
                 end_time = time.time()
                 result['status'] = 'AÃ‡IK'
                 result['latency_ms'] = (end_time - start_time) * 1000
-                
-                # Banner kapma denemesi (EÄŸer aÃ§Ä±k bulursa Ã§ok kÄ±sa bekleyip banner almayÄ± deneriz)
+
                 try:
                     writer.write(b'\r\n')
                     await writer.drain()
@@ -56,7 +55,7 @@ class AsyncScanner(BaseScanner):
                 await writer.wait_closed()
                 
             except (asyncio.TimeoutError, ConnectionRefusedError, OSError):
-                # Timeout veya baÄŸlantÄ± reddi durumlarÄ±nda kapalÄ±/filtreli varsayÄ±lÄ±r
+
                 result['status'] = 'KAPALI'
                 
             return result
@@ -74,7 +73,7 @@ class AsyncScanner(BaseScanner):
         BaseScanner arayÃ¼zÃ¼nÃ¼n senkron olarak uygulanmasÄ±. 
         Arkada asenkron event loop Ã§alÄ±ÅŸtÄ±rÄ±r.
         """
-        # Event loop Ã§atÄ±ÅŸmalarÄ±nÄ± engellemek iÃ§in yeni bir loop oluÅŸturuyoruz
+
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
@@ -82,4 +81,5 @@ class AsyncScanner(BaseScanner):
             return results
         finally:
             loop.close()
+
 

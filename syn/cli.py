@@ -63,17 +63,20 @@ def interactive_wizard():
         console.print("  [1] SMART   - Autonomous AI Decision Engine (Recommended)")
         console.print("  [2] ASYNC   - Ultra-Fast TCP Connect Scan")
         console.print("  [3] STEALTH - Scapy Stealth Scan (Requires root/admin)")
-        mode_choice = Prompt.ask("[bold cyan][?][/bold cyan] Select Mode", choices=["1", "2", "3", "SMART", "ASYNC", "STEALTH"], default="1")
+        console.print("  [4] UDP     - Scapy UDP Scan")
+        mode_choice = Prompt.ask("[bold cyan][?][/bold cyan] Select Mode", choices=["1", "2", "3", "4", "SMART", "ASYNC", "STEALTH", "UDP"], default="1")
         
-        mode_map = {"1": "SMART", "2": "ASYNC", "3": "S", "SMART": "SMART", "ASYNC": "ASYNC", "STEALTH": "S"}
+        mode_map = {"1": "SMART", "2": "ASYNC", "3": "S", "4": "U", "SMART": "SMART", "ASYNC": "ASYNC", "STEALTH": "S", "UDP": "U"}
         mode = mode_map[mode_choice.upper()]
+
+        jitter = Confirm.ask("[bold cyan][?][/bold cyan] Enable AI Dynamic Jitter (IDS/IPS Evasion)?", default=False)
 
         report = Prompt.ask("[bold cyan][?][/bold cyan] Output Format", choices=["console", "json", "html", "md"], default="console")
 
-        console.print(f"\n[bold green]Summary:[/bold green] Target: {target}, Ports: {start_port}-{end_port}, Mode: {mode}, Report: {report}")
+        console.print(f"\n[bold green]Summary:[/bold green] Target: {target}, Ports: {start_port}-{end_port}, Mode: {mode}, Jitter: {jitter}, Report: {report}")
         confirm = Confirm.ask("[bold cyan][?][/bold cyan] Are these settings correct?", default=True)
         if confirm:
-            return argparse.Namespace(target=target, start_port=start_port, end_port=end_port, mode=mode, report=report)
+            return argparse.Namespace(target=target, start_port=start_port, end_port=end_port, mode=mode, report=report, jitter=jitter)
         else:
             console.print("[yellow][!] Let's try again...[/yellow]\n")
 
@@ -96,7 +99,7 @@ Examples:
     
     parser.add_argument(
         "--mode", 
-        choices=["SMART", "ASYNC", "S", "A", "F", "X", "N"], 
+        choices=["SMART", "ASYNC", "S", "A", "F", "X", "N", "U"], 
         default="SMART",
         help="""Scan execution mode:
   SMART : Autonomous mode. Uses AI to analyze initial state and pivot dynamically.
@@ -105,7 +108,14 @@ Examples:
   A     : TCP ACK Scan (Firewall mapping).
   F     : TCP FIN Scan (Bypassing stateless firewalls).
   X     : TCP XMAS Scan.
-  N     : TCP NULL Scan."""
+  N     : TCP NULL Scan.
+  U     : UDP Scan."""
+    )
+    
+    parser.add_argument(
+        "--jitter", 
+        action="store_true", 
+        help="Enable AI Dynamic Jitter to evade IDS/IPS during stealth/UDP scans."
     )
     
     parser.add_argument(
@@ -182,7 +192,7 @@ Examples:
                 if not ports_to_check:
                     ports_to_check = list(range(args.start_port, min(args.end_port + 1, args.start_port + 10)))
                 
-                stealth_scanner = StealthScanner(ip, ports_to_check[0], ports_to_check[-1], "S")
+                stealth_scanner = StealthScanner(ip, ports_to_check[0], ports_to_check[-1], "S", getattr(args, 'jitter', False))
                 stealth_scanner.port_range = ports_to_check 
                 initial_results = stealth_scanner.scan()
 
@@ -221,7 +231,7 @@ Examples:
                     if not res.get('banner'):
                         res['banner'] = banner_grabber.get_banner(res['port'])
         else:
-            scanner = StealthScanner(ip, args.start_port, args.end_port, args.mode)
+            scanner = StealthScanner(ip, args.start_port, args.end_port, args.mode, getattr(args, 'jitter', False))
             target_results = scanner.scan()
             
             logger.info("[EXEC] Commencing deep service fingerprinting...")

@@ -23,7 +23,7 @@ Designed for red teamers, bug bounty hunters, and penetration testers, SYN goes 
 
 *   **🤖 Autonomous AI Engine (SMART Mode)**: Utilizes trained Random Forest models to analyze target responses (TTL, Latency, Flags). It can predict the underlying OS and automatically pivot to the optimal scan method (e.g., switching to FIN scans if a stateful firewall drops initial probes).
 *   **⚡ Ultra-Fast Asynchronous Scanning**: Implements high-performance TCP connection scans via `asyncio`, allowing rapid reconnaissance without requiring root privileges.
-*   **🥷 Stealth Operations**: Integrates a powerful `scapy` engine supporting advanced packet manipulation (SYN, ACK, FIN, XMAS, and NULL scans) to map networks while bypassing traditional IDS/IPS systems.
+*   **🥷 Stealth Operations & AI Jitter**: Integrates a powerful `scapy` engine supporting advanced packet manipulation (SYN, ACK, FIN, XMAS, NULL, and UDP scans) to map networks. Uses **AI Dynamic Jitter** to intelligently throttle packet rates in real-time, effectively bypassing modern adaptive IDS/IPS systems and WAFs.
 *   **🌐 Real-Time CVE Integration**: Automatically queries the NIST NVD API using intelligent banner grabbing. It discovers zero-days and known vulnerabilities on the fly, utilizing a local SQLite caching system to prevent API rate limits.
 *   **📊 Rich Terminal UI & Reporting**: Features a highly interactive setup wizard, color-coded terminal tables, and robust export capabilities (JSON, HTML, Markdown).
 *   **🐳 Docker Ready**: Fully containerized environment for isolated, dependency-free execution with optimized caching.
@@ -172,6 +172,7 @@ sudo syn 10.0.0.5 1 65535 --mode S
 | **F** | TCP FIN Scan (Bypasses stateless firewalls). | **Root** |
 | **X** | TCP XMAS Scan (Lights up the packet like a Christmas tree). | **Root** |
 | **N** | TCP NULL Scan (No flags set). | **Root** |
+| **U** | UDP Scan (Detects stateless UDP services). | **Root** |
 
 ### Output Formats
 

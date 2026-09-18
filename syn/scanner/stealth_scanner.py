@@ -1,4 +1,4 @@
-﻿"""
+"""
 SYN - Gizli (Stealth) Scapy Tarama Motoru
 """
 
@@ -46,8 +46,8 @@ class StealthScanner(BaseScanner):
             start_time = time.time()
             response = sr1(ip_layer / tcp_layer, timeout=2.0, verbose=0)
             end_time = time.time()
-        except ValueError as e:
-            # Scapy 'Microsoft KM-TEST Loopback Adapter' not found hatasını handle et
+        except (ValueError, PermissionError, OSError) as e:
+            # PermissionError: root/admin gerekli, ValueError: adapter bulunamadı
             response = None
             end_time = time.time()
         
@@ -111,6 +111,11 @@ class StealthScanner(BaseScanner):
             all_results.append(results_queue.get())
             
         return all_results
+
+
+
+
+
 
 
 

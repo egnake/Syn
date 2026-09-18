@@ -1,6 +1,6 @@
 <div align="center">
   <img src="docs/images/1.png" alt="SYN Banner" width="600">
-  <h1>🚀 SYN Framework</h1>
+  <h1>SYN Framework</h1>
   <p><strong>Advanced AI-Powered Autonomous Security Scanner & Pentest Framework</strong></p>
 
   <p align="center">
@@ -201,4 +201,4 @@ Generate comprehensive reports using the `--report` flag:
 ---
 
 ## 👤 Author
-Developed with ❤️ by **Egnake**.
+Developed by **Egnake**.

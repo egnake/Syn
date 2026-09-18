@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/images/1_banner.png" alt="SYN Banner" width="600">
+  <img src="docs/images/1.jpg" alt="SYN Banner" width="600">
   <h1>🚀 SYN Framework</h1>
   <p><strong>Advanced AI-Powered Autonomous Security Scanner & Pentest Framework</strong></p>
 
@@ -35,13 +35,13 @@ Designed for red teamers, bug bounty hunters, and penetration testers, SYN goes 
 ### 1. Interactive Setup Wizard
 Provides an intuitive, colorized CLI wizard to quickly configure targets, port profiles, and scan modes.
 <div align="center">
-  <img src="docs/images/2_setup.png" alt="Interactive Setup" width="800">
+  <img src="docs/images/2.jpg" alt="Interactive Setup" width="800">
 </div>
 
 ### 2. Engine Initialization & AI Analysis
 Loads the machine learning models and initializes the OODA (Observe, Orient, Decide, Act) loop for target analysis.
 <div align="center">
-  <img src="docs/images/3_scan.png" alt="Scan Initialization" width="800">
+  <img src="docs/images/3.jpg" alt="Scan Initialization" width="800">
 </div>
 
 ---

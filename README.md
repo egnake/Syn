@@ -44,6 +44,77 @@ Loads the machine learning models and initializes the OODA (Observe, Orient, Dec
   <img src="docs/images/3.jpg" alt="Scan Initialization" width="800">
 </div>
 
+### 3. Example Terminal Output (CLI)
+For a text-based preview of the tool in action, expand the section below:
+
+<details>
+<summary><b>Click to view the full raw terminal output</b></summary>
+
+```console
+C:\Users\Egcae>syn
+
+  ██████ ▓██   ██▓ ███▄    █
+▒██    ▒  ▒██  ██▒ ██ ▀█   █
+░ ▓██▄     ▒██ ██░▓██  ▀█ ██▒
+  ▒   ██▒  ░ ▐██▓░▓██▒  ▐▌██▒
+▒██████▒▒  ░ ██▒▓░▒██░   ▓██░
+▒ ▒▓▒ ▒ ░   ██▒▒▒ ░ ▒░   ▒ ▒
+
+       [ INTERACTIVE SETUP ]
+
+[?] Target IP/Hostname (127.0.0.1): 127.0.0.1
+
+Port Scanning Profiles:
+  [1] FAST   - Top 10,000 Ports (Includes 9999, 10000, 8443 etc.)
+  [2] ALL    - 1-65535 All Ports (Thorough but slow)
+  [3] CUSTOM - Specify a custom range (e.g., 50-500)
+[?] Select Port Profile [1/2/3/FAST/ALL/CUSTOM] (1): 1
+
+Available Scan Modes:
+  [1] SMART   - Autonomous AI Decision Engine (Recommended)
+  [2] ASYNC   - Ultra-Fast TCP Connect Scan
+  [3] STEALTH - Scapy Stealth Scan (Requires root/admin)
+[?] Select Mode [1/2/3/SMART/ASYNC/STEALTH] (1): 2
+[?] Output Format [console/json/html/md] (console): console
+
+Summary: Target: 127.0.0.1, Ports: 1-10000, Mode: ASYNC, Report: console
+[?] Are these settings correct? [y/n] (y): y
+
+    [ SYN ENGINE INITIALIZATION ]
+
+[09/18/26 12:10:35] INFO     [SYSTEM] Loading AI inference models...
+                    INFO     [SYSTEM] AI models initialized successfully.
+                    INFO
+                             [bold cyan]>>> Scanning Target: 127.0.0.1 <<<[/bold cyan]
+                    INFO     [EXEC] Commencing Async TCP Scan: 127.0.0.1 (1-10000)
+[09/18/26 12:13:06] INFO     [EXEC] Commencing deep service fingerprinting...
+[09/18/26 12:13:22] INFO     [AI_EXEC] Preprocessing network vectors for AI consumption...
+[09/18/26 12:23:58] INFO     [AI_EXEC] Inference successful: OS footprints and anomaly scores mapped.
+                     SYN - Advanced Scan & AI Analysis Results
+┌───────────┬──────┬───────┬───────────────────────┬──────────┬────────────────────┐
+│ Target IP │ Port │ State │ Service / Banner      │ AI OS    │ Risk / Web Surface │
+├───────────┼──────┼───────┼───────────────────────┼──────────┼────────────────────┤
+│ 127.0.0.1 │  135 │ OPEN  │ MSRPC (Port Fallback) │ Linux/64 │ MEDIUM RISK        │
+│ 127.0.0.1 │  445 │ OPEN  │ SMB (Port Fallback)   │ Linux/64 │ HIGH RISK          │
+│ 127.0.0.1 │ 2179 │ OPEN  │ Unknown (No Banner)   │ Linux/64 │ SAFE               │
+│ 127.0.0.1 │ 5040 │ OPEN  │ Unknown (No Banner)   │ Linux/64 │ SAFE               │
+│ 127.0.0.1 │ 7070 │ OPEN  │ Unknown (No Banner)   │ Linux/64 │ SAFE               │
+│ 127.0.0.1 │ 7680 │ OPEN  │ Unknown (No Banner)   │ Linux/64 │ SAFE               │
+└───────────┴──────┴───────┴───────────────────────┴──────────┴────────────────────┘
+
+>>> WARNING: CRITICAL RISKS OR VULNERABILITIES DETECTED! <<<
+
+Port 135 Detailed Analysis:
+Warning: OPEN PORT 135 (RPC).
+Action: Restrict access to this port to local network only.
+
+Port 445 Detailed Analysis:
+Warning: OPEN PORT 445 (SMB) and AI guessed Linux! Likely Samba service. Check for Samba vulnerabilities.
+Action: Samba service may be vulnerable. Check version and update.
+[09/18/26 12:24:00] INFO     [SYSTEM] Execution halted. Scan complete.
+```
+</details>
+
 ---
 
 ## 📦 Installation

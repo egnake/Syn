@@ -10,7 +10,8 @@ import os
 import random
 import threading
 import time
-from typing import Any, Deque, Dict, List, Optional, Tuple
+from typing import Any, Deque, Dict, List, Optional, Sequence, Tuple
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn, TimeRemainingColumn
 from scapy.all import ICMP, IP, IPv6, Raw, TCP, UDP, conf, send, sr1
 from .base_scanner import BaseScanner
 from syn.core.config import (
@@ -22,7 +23,7 @@ from syn.core.config import (
     STATUS_OPEN_FILTERED,
     STATUS_UNFILTERED,
 )
-from syn.core.logger import logger
+from syn.core.logger import console, logger
 
 conf.verb = 0
 
@@ -52,19 +53,21 @@ class StealthScanner(BaseScanner):
     def __init__(
         self,
         target: str,
-        start_port: int,
-        end_port: int,
+        start_port: int = 1,
+        end_port: int = 1,
         scan_type: str = "S",
         jitter_enabled: bool = False,
         ports_override: Optional[List[int]] = None,
         max_workers: int = 32,
+        ports: Optional[Sequence[int]] = None,
+        show_progress: bool = True,
     ):
-        super().__init__(target, start_port, end_port)
+        explicit_ports = ports if ports is not None else ports_override
+        super().__init__(target, start_port, end_port, ports=explicit_ports)
         self.scan_type = scan_type.upper()
         self.jitter_enabled = jitter_enabled
         self.max_workers = max(1, max_workers)
-        if ports_override is not None:
-            self.port_range = ports_override
+        self.show_progress = show_progress
 
         self.latencies: Deque[float] = deque(maxlen=50)
         self._latency_lock = threading.Lock()
@@ -209,19 +212,21 @@ class StealthScanner(BaseScanner):
     def scan(self) -> List[Dict[str, Any]]:
         scan_name = self.SCAN_INFO[self.scan_type]["name"]
         jitter_status = "enabled" if self.jitter_enabled else "disabled"
-        logger.info(
-            f"[EXEC] Commencing Stealth {scan_name} Scan (Jitter: {jitter_status}): "
-            f"{self.target} ({self.start_port}-{self.end_port})"
-        )
-
         ports = list(self.port_range)
         if not ports:
             return []
+
+        scope_label = f"{len(ports)} ports" if len(ports) != (self.end_port - self.start_port + 1) else f"{self.start_port}-{self.end_port}"
+        logger.info(
+            f"[EXEC] Commencing Stealth {scan_name} Scan (Jitter: {jitter_status}): "
+            f"{self.target} ({scope_label})"
+        )
 
         base_sleep = 0.01
         current_sleep = base_sleep
         all_results: List[Dict[str, Any]] = []
         workers = min(self.max_workers, len(ports))
+        use_bar = bool(self.show_progress and console.is_terminal and len(ports) > 1)
 
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = []
@@ -239,8 +244,23 @@ class StealthScanner(BaseScanner):
                             current_sleep = max(base_sleep, current_sleep * 0.9)
                     time.sleep(current_sleep)
 
-            for fut in as_completed(futures):
-                all_results.append(fut.result())
+            if use_bar:
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[bold cyan]{task.description}"),
+                    BarColumn(),
+                    TaskProgressColumn(),
+                    TimeRemainingColumn(),
+                    console=console,
+                    transient=True,
+                ) as progress:
+                    task_id = progress.add_task(f"Stealth {scan_name} {self.target}", total=len(ports))
+                    for fut in as_completed(futures):
+                        all_results.append(fut.result())
+                        progress.advance(task_id, 1)
+            else:
+                for fut in as_completed(futures):
+                    all_results.append(fut.result())
 
         all_results.sort(key=lambda item: item["port"])
         return all_results

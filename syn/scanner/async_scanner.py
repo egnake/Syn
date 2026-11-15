@@ -4,7 +4,8 @@ SYN - Fast Asynchronous TCP Connect Scanner
 
 import asyncio
 import time
-from typing import Any, Dict, Iterator, List
+from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn, TimeRemainingColumn
 from .base_scanner import BaseScanner
 from syn.core.config import (
     ASYNC_CONCURRENCY_LIMIT,
@@ -14,16 +15,25 @@ from syn.core.config import (
     STATUS_FILTERED,
     STATUS_OPEN,
 )
-from syn.core.logger import logger
+from syn.core.logger import console, logger
 from syn.core.sanitizer import strip_control_chars
 
 
 class AsyncScanner(BaseScanner):
     """High-concurrency asyncio TCP connect port scanner."""
 
-    def __init__(self, target: str, start_port: int, end_port: int, timeout: float = ASYNC_TIMEOUT):
-        super().__init__(target, start_port, end_port)
+    def __init__(
+        self,
+        target: str,
+        start_port: int = 1,
+        end_port: int = 1,
+        timeout: float = ASYNC_TIMEOUT,
+        ports: Optional[Sequence[int]] = None,
+        show_progress: bool = True,
+    ):
+        super().__init__(target, start_port, end_port, ports=ports)
         self.timeout = timeout
+        self.show_progress = show_progress
 
     async def _check_port(self, port: int) -> Dict[str, Any]:
         result: Dict[str, Any] = {
@@ -73,7 +83,13 @@ class AsyncScanner(BaseScanner):
 
         return result
 
-    async def _worker(self, port_iter: Iterator[int], lock: asyncio.Lock, results: List[Dict[str, Any]]):
+    async def _worker(
+        self,
+        port_iter: Iterator[int],
+        lock: asyncio.Lock,
+        results: List[Dict[str, Any]],
+        on_done: Optional[Callable[[], None]] = None,
+    ):
         while True:
             async with lock:
                 try:
@@ -82,17 +98,42 @@ class AsyncScanner(BaseScanner):
                     return
             res = await self._check_port(port)
             results.append(res)
+            if on_done is not None:
+                on_done()
 
     async def _run_scan_async(self) -> List[Dict[str, Any]]:
-        logger.info(f"[EXEC] Commencing Async TCP Scan: {self.target} ({self.start_port}-{self.end_port})")
         total_ports = len(self.port_range)
+        scope_label = f"{total_ports} ports" if total_ports != (self.end_port - self.start_port + 1) else f"{self.start_port}-{self.end_port}"
+        logger.info(f"[EXEC] Commencing Async TCP Scan: {self.target} ({scope_label})")
+
         worker_count = min(ASYNC_CONCURRENCY_LIMIT, max(1, total_ports))
         port_iter = iter(self.port_range)
         lock = asyncio.Lock()
         results: List[Dict[str, Any]] = []
 
-        workers = [asyncio.create_task(self._worker(port_iter, lock, results)) for _ in range(worker_count)]
-        await asyncio.gather(*workers)
+        use_bar = bool(self.show_progress and console.is_terminal and total_ports > 1)
+        if use_bar:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[bold cyan]{task.description}"),
+                BarColumn(),
+                TaskProgressColumn(),
+                TimeRemainingColumn(),
+                console=console,
+                transient=True,
+            ) as progress:
+                task_id = progress.add_task(f"Scanning {self.target}", total=total_ports)
+                workers = [
+                    asyncio.create_task(
+                        self._worker(port_iter, lock, results, lambda: progress.advance(task_id, 1))
+                    )
+                    for _ in range(worker_count)
+                ]
+                await asyncio.gather(*workers)
+        else:
+            workers = [asyncio.create_task(self._worker(port_iter, lock, results)) for _ in range(worker_count)]
+            await asyncio.gather(*workers)
+
         results.sort(key=lambda item: item["port"])
         return results
 

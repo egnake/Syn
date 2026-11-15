@@ -65,16 +65,58 @@ _HTTP_HEURISTIC_RE = re.compile(
 )
 
 
+_HTTP_STATUS_RE = re.compile(r"^(HTTP/[0-9.]+\s+\d{3}[^\r\n]{0,30})", re.IGNORECASE)
+_HTTP_HEADER_VALUE_STOP = (
+    r"(?=\s+(?:Date|Server|Content-Type|Content-Length|Last-Modified|"
+    r"Connection|Cache-Control|Set-Cookie|ETag|Expires|Pragma|"
+    r"Location|X-Powered-By|Transfer-Encoding|Accept-Ranges|Vary|"
+    r"Strict-Transport-Security|X-Frame-Options|X-Content-Type-Options):|\s*$)"
+)
+_SERVER_HDR_RE = re.compile(rf"\bServer:\s*([^\r\n]+?){_HTTP_HEADER_VALUE_STOP}", re.IGNORECASE)
+_POWERED_HDR_RE = re.compile(rf"\bX-Powered-By:\s*([^\r\n]+?){_HTTP_HEADER_VALUE_STOP}", re.IGNORECASE)
+
+
 class ServiceIdentifier:
     """Identifies network service protocol and whether an HTTP web surface is present."""
 
     @staticmethod
+    def summarize_banner(port: int, banner: str) -> str:
+        """Return a concise single-line summary preserving key product/version details."""
+        if not banner or banner == "Unknown (No Banner)":
+            return "Unknown (No Banner)"
+
+        status_m = _HTTP_STATUS_RE.search(banner)
+        server_m = _SERVER_HDR_RE.search(banner)
+        powered_m = _POWERED_HDR_RE.search(banner)
+        if status_m or server_m:
+            parts = []
+            if status_m:
+                # Trim trailing header key tokens captured on flattened single-line responses
+                status_txt = re.split(
+                    r"\s+(?:Date|Server|Content-Type|Content-Length|Last-Modified|Connection):",
+                    status_m.group(1),
+                    maxsplit=1,
+                    flags=re.IGNORECASE,
+                )[0].strip()
+                parts.append(status_txt)
+            if server_m:
+                parts.append(f"Server: {server_m.group(1).strip()}")
+            if powered_m:
+                parts.append(f"X-Powered-By: {powered_m.group(1).strip()}")
+            if parts:
+                return " | ".join(parts)
+
+        return banner
+
+    @staticmethod
     def identify(port: int, banner: str) -> Dict[str, Any]:
+        summary = ServiceIdentifier.summarize_banner(port, banner)
         result: Dict[str, Any] = {
             "service_name": "Unknown (No Banner)",
             "is_web": False,
             "confidence": 0.0,
             "is_fallback": False,
+            "banner_summary": summary,
         }
 
         has_banner = bool(banner and banner != "Unknown (No Banner)")

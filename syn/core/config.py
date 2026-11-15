@@ -90,6 +90,24 @@ RISK_NONE = "NO_ACTION"
 
 TLS_PORTS: Set[int] = {443, 465, 636, 993, 995, 8443}
 HTTP_CLIENT_FIRST_PORTS: Set[int] = {80, 443, 3000, 5000, 8000, 8080, 8081, 8443, 8888, 9000, 9200}
+TLS_DEPRECATED_VERSIONS: Set[str] = {"TLSv1", "TLSv1.0", "TLSv1.1", "SSLv2", "SSLv3"}
+
+# Top 100 high-value TCP service ports ordered by real-world prevalence
+TOP_PORTS_BY_PRIORITY: List[int] = [
+    80, 443, 22, 21, 25, 3389, 110, 445, 139, 143,
+    53, 135, 3306, 8080, 8443, 5432, 6379, 27017, 5900, 23,
+    587, 993, 995, 465, 1433, 1521, 8000, 8081, 8888, 3000,
+    5000, 9000, 9200, 2375, 2376, 6443, 111, 2049, 389, 636,
+    88, 179, 873, 1080, 3128, 5601, 5672, 9090, 5985, 1883,
+    81, 5001, 4443, 4444, 4848, 5800, 5984, 7001, 7070, 8008,
+    2082, 2083, 1194, 1723, 3690, 5060, 4000, 4369, 6000, 6667,
+    514, 515, 548, 554, 631, 902, 990, 1720, 2000, 2121,
+    1025, 1026, 1027, 7, 9, 13, 26, 37, 79, 106,
+    113, 119, 144, 199, 427, 444, 513, 543, 544, 646,
+]
+TOP_100_PORTS: List[int] = sorted(TOP_PORTS_BY_PRIORITY)
+
+QUICK_SCAN_PORTS: List[int] = [21, 22, 23, 80, 135, 139, 443, 445, 3389]
 
 # Validated raw byte probes (no eval or UTF-8 corruption of binary payloads)
 SERVICE_PROBES: Dict[int, List[bytes]] = {

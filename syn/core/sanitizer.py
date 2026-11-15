@@ -4,7 +4,7 @@ SYN - Input Validation and Output Sanitization Helpers
 
 import html
 import re
-from typing import Any, Tuple
+from typing import Any, List, Tuple
 from rich.markup import escape as rich_escape
 
 # Match ANSI CSI sequences, OSC sequences, and single ESC sequences
@@ -80,3 +80,35 @@ def validate_port_range(start_port: int, end_port: int) -> Tuple[int, int]:
     if start_port > end_port:
         raise ValueError(f"Start port ({start_port}) cannot exceed end port ({end_port}).")
     return start_port, end_port
+
+
+def parse_port_spec(spec: str) -> List[int]:
+    """
+    Parse flexible port specification strings such as '22,80,443,8000-8100'
+    into a deduplicated sorted list of validated TCP/UDP ports.
+    """
+    if not isinstance(spec, str) or not spec.strip():
+        raise ValueError("Port specification must be a non-empty string.")
+
+    selected = set()
+    for raw_token in spec.split(","):
+        token = raw_token.strip()
+        if not token:
+            raise ValueError(f"Empty port token in specification: '{spec}'.")
+        if "-" in token:
+            parts = token.split("-")
+            if len(parts) != 2 or not parts[0].strip().isdigit() or not parts[1].strip().isdigit():
+                raise ValueError(f"Invalid port range token: '{token}'.")
+            start_p = int(parts[0].strip())
+            end_p = int(parts[1].strip())
+            validate_port_range(start_p, end_p)
+            selected.update(range(start_p, end_p + 1))
+        else:
+            if not token.isdigit():
+                raise ValueError(f"Invalid port value: '{token}'.")
+            port_val = int(token)
+            if not is_valid_port(port_val):
+                raise ValueError(f"Port must be between 1 and 65535 (got {port_val}).")
+            selected.add(port_val)
+
+    return sorted(selected)

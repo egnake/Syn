@@ -236,3 +236,9 @@ class TestAIModelsAndAnalyzer:
             "HTTP/1.0 200 OK Date: Sat, 15 Nov 2026 Server: SimpleHTTP/0.6 Python/3.12.3 Content-type: text/html",
         )
         assert summary == "HTTP/1.0 200 OK | Server: SimpleHTTP/0.6 Python/3.12.3"
+
+        long_summary = ServiceIdentifier.summarize_banner(
+            80,
+            "HTTP/1.0 501 Unsupported method ('HEAD') Server: BaseHTTP/0.6 Python/3.12.3 Date: Sat, 15 Nov",
+        )
+        assert long_summary == "HTTP/1.0 501 | Server: BaseHTTP/0.6 Python/3.12.3"

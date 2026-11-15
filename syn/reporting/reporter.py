@@ -68,7 +68,7 @@ class Reporter(BaseReporter):
             ip_str = sanitize_terminal_text(res.get("target_ip", "127.0.0.1"))
             port_str = sanitize_terminal_text(res.get("port", "N/A"))
             status = sanitize_terminal_text(res.get("status", "Unknown"))
-            banner_display = sanitize_terminal_text(self.format_banner_display(res), max_len=52)
+            banner_display = sanitize_terminal_text(self.format_banner_display(res), max_len=68)
             os_tahmini = sanitize_terminal_text(self.normalize_os(res))
             decision = risk_analysis["decision"]
 

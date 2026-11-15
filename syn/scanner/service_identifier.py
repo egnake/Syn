@@ -65,7 +65,10 @@ _HTTP_HEURISTIC_RE = re.compile(
 )
 
 
-_HTTP_STATUS_RE = re.compile(r"^(HTTP/[0-9.]+\s+\d{3}[^\r\n]{0,30})", re.IGNORECASE)
+_HTTP_STATUS_RE = re.compile(
+    r"^(HTTP/[0-9.]+\s+\d{3})(?:\s+([^\r\n]{1,60}?))?(?=\s+[A-Za-z0-9-]+:\s|\s*$)",
+    re.IGNORECASE,
+)
 _HTTP_HEADER_VALUE_STOP = (
     r"(?=\s+(?:Date|Server|Content-Type|Content-Length|Last-Modified|"
     r"Connection|Cache-Control|Set-Cookie|ETag|Expires|Pragma|"
@@ -91,13 +94,12 @@ class ServiceIdentifier:
         if status_m or server_m:
             parts = []
             if status_m:
-                # Trim trailing header key tokens captured on flattened single-line responses
-                status_txt = re.split(
-                    r"\s+(?:Date|Server|Content-Type|Content-Length|Last-Modified|Connection):",
-                    status_m.group(1),
-                    maxsplit=1,
-                    flags=re.IGNORECASE,
-                )[0].strip()
+                proto_code = status_m.group(1).strip()
+                reason = (status_m.group(2) or "").strip()
+                status_txt = f"{proto_code} {reason}".strip() if reason else proto_code
+                # Keep long error phrases from crowding out Server: headers in tables
+                if server_m and len(status_txt) > 22:
+                    status_txt = proto_code
                 parts.append(status_txt)
             if server_m:
                 parts.append(f"Server: {server_m.group(1).strip()}")

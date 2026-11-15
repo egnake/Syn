@@ -26,10 +26,19 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# SYN Project Specific
+# SYN Runtime Artifacts
 logs/
+syn/logs/
 cache/
-models/*.joblib
+syn/cache/
+reports/
+*.db
+*.sqlite3
+syn_report.*
+umay_report.*
+.pytest_cache/
+
+# Virtual Environments
 .venv/
 env/
 venv/

@@ -1,17 +1,20 @@
-version: '3.8'
-
 services:
   syn:
     build: .
     image: syn-framework
     container_name: syn-scanner
-    # Use host network to allow stealth scans and proper port mapping
+    # Host networking allows raw-socket stealth scans on Linux hosts
     network_mode: "host"
-    # Run in interactive mode so the TUI wizard works
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
     stdin_open: true
     tty: true
-    # Mount volumes to persist AI models, cache, and reports
+    environment:
+      - SYN_CACHE_DIR=/app/cache
+      - SYN_LOGS_DIR=/app/logs
+      - SYN_REPORTS_DIR=/app/reports
     volumes:
-      - ./models:/app/models
+      - ./syn/models:/app/syn/models
       - ./reports:/app/reports
-      - ./nvd_cache.db:/app/nvd_cache.db
+      - ./cache:/app/cache

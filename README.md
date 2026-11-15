@@ -15,18 +15,18 @@
 
 ## 📖 Overview
 
-**SYN** is a next-generation, autonomous port scanner and vulnerability assessment framework powered by Artificial Intelligence (Machine Learning) and real-time CVE intelligence. 
+**SYN** is an autonomous port scanner and vulnerability assessment framework powered by Machine Learning (TTL/latency OS fingerprinting & anomaly detection) and real-time CVE intelligence.
 
-Designed for red teamers, bug bounty hunters, and penetration testers, SYN goes beyond traditional scanning mechanisms. By predicting the target's operating system, identifying network anomalies through machine learning models, and dynamically adapting its scanning behavior, SYN ensures maximum stealth and efficiency. It automatically fetches the latest high-risk CVEs from the NIST National Vulnerability Database (NVD) to provide immediate threat context.
+Designed for red teamers, bug bounty hunters, and penetration testers, SYN combines high-speed asynchronous TCP scanning with `scapy`-based stealth/UDP probes, dynamic jitter evasion, web attack surface inspection, and version-aware CVE lookups via the CIRCL CVE Search API backed by a local SQLite cache.
 
 ## ✨ Core Features
 
-*   **🤖 Autonomous AI Engine (SMART Mode)**: Utilizes trained Random Forest models to analyze target responses (TTL, Latency, Flags). It can predict the underlying OS and automatically pivot to the optimal scan method (e.g., switching to FIN scans if a stateful firewall drops initial probes).
-*   **⚡ Ultra-Fast Asynchronous Scanning**: Implements high-performance TCP connection scans via `asyncio`, allowing rapid reconnaissance without requiring root privileges.
-*   **🥷 Stealth Operations & AI Jitter**: Integrates a powerful `scapy` engine supporting advanced packet manipulation (SYN, ACK, FIN, XMAS, NULL, and UDP scans) to map networks. Uses **AI Dynamic Jitter** to intelligently throttle packet rates in real-time, effectively bypassing modern adaptive IDS/IPS systems and WAFs.
-*   **🌐 Real-Time CVE Integration**: Automatically queries the NIST NVD API using intelligent banner grabbing. It discovers zero-days and known vulnerabilities on the fly, utilizing a local SQLite caching system to prevent API rate limits.
-*   **📊 Rich Terminal UI & Reporting**: Features a highly interactive setup wizard, color-coded terminal tables, and robust export capabilities (JSON, HTML, Markdown).
-*   **🐳 Docker Ready**: Fully containerized environment for isolated, dependency-free execution with optimized caching.
+*   **🤖 Autonomous AI Engine (SMART Mode)**: Utilizes verified Random Forest and Local Outlier Factor models to analyze observed network vectors (TTL, Latency) and dynamically select or pivot scan modes (e.g., falling back cleanly to ASYNC without root/Npcap, or pivoting to FIN if probes are silently dropped).
+*   **⚡ Ultra-Fast Asynchronous Scanning**: Implements high-performance TCP connection scans via `asyncio`, distinguishing open, closed (`RST`), and filtered (timeout) ports without requiring elevated privileges.
+*   **🥷 Stealth Operations & AI Jitter**: Integrates a `scapy` engine supporting SYN, ACK, FIN, XMAS, NULL, and UDP scans with bounded thread pools, randomized source ports, and **AI Dynamic Jitter** for adaptive rate control.
+*   **🌐 Version-Aware CVE Integration**: Queries the CIRCL CVE Search API (`cve.circl.lu`) and curated static vulnerability recipes only when product and version signatures are confirmed, using a local SQLite cache to minimize repeated API calls and false positives.
+*   **📊 Rich Terminal UI & Reporting**: Features an interactive setup wizard, sanitized Rich console tables, and XSS/injection-safe exports in JSON, HTML, and Markdown (`-o/--output`).
+*   **🐳 Docker Ready**: Fully containerized environment for isolated execution with persisted cache, logs, and reports.
 
 ---
 
@@ -126,7 +126,7 @@ git clone https://github.com/egnakesec/syn.git
 cd syn
 docker-compose up --build
 ```
-*Note: The `docker-compose.yml` uses `network_mode: "host"` to ensure stealth scans and proper port bindings work flawlessly.*
+*Note: `docker-compose.yml` uses `network_mode: "host"` with `NET_RAW`/`NET_ADMIN` capabilities for Linux stealth scans; on Windows/macOS Docker Desktop, use `--mode ASYNC` or run natively with Administrator + Npcap.*
 
 ### Option 2: Local Installation (Requires Python 3.10+)
 If you prefer running it locally on your host machine:
@@ -155,9 +155,12 @@ For automated pipelines or power users, SYN supports direct execution:
 syn 192.168.1.1 1 1000 --mode SMART
 
 # Ultra-Fast Async Scan (No root needed) with JSON reporting
-syn scanme.nmap.org 80 443 --mode ASYNC --report json
+syn scanme.nmap.org 80 443 --mode ASYNC --report json -o scan_results.json
 
-# Stealth TCP SYN Scan (Requires Root/Admin Privileges)
+# Include OSINT subdomain discovery via crt.sh
+syn example.com 80 443 --mode ASYNC --subdomains
+
+# Stealth TCP SYN Scan (Requires Root/Admin Privileges + libpcap/Npcap)
 sudo syn 10.0.0.5 1 65535 --mode S
 ```
 

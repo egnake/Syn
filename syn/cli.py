@@ -16,13 +16,16 @@ from syn.ai.analyzer import AIAnalyzer
 from syn.ai.model_manager import ModelManager
 from syn.banners import get_random_banner
 from syn.core.config import (
+    ASYNC_TIMEOUT,
     QUICK_SCAN_PORTS,
     STATUS_ERROR,
     STATUS_NO_RESPONSE,
     STATUS_OPEN,
+    TOP_100_PORTS,
+    TOP_PORTS_BY_PRIORITY,
 )
 from syn.core.logger import console, enable_file_logging, logger
-from syn.core.sanitizer import validate_port_range
+from syn.core.sanitizer import parse_port_spec, validate_port_range
 from syn.recon.host_discovery import HostDiscovery
 from syn.recon.subdomain_enum import SubdomainEnum
 from syn.recon.target_parser import TargetParser
@@ -37,19 +40,14 @@ from syn.vulnerability.cve_engine import CVEEngine
 from syn.web.http_analyzer import HttpAnalyzer
 
 
-def _prompt_custom_ports() -> Tuple[int, int]:
+def _prompt_custom_ports() -> List[int]:
     while True:
         port_choice = Prompt.ask(
-            "[bold cyan][?][/bold cyan] Custom Port Range (e.g., '1-1000' or '80')",
+            "[bold cyan][?][/bold cyan] Custom Ports/Ranges (e.g., '22,80,443,8000-8100')",
             default="1-1000",
         )
         try:
-            parts = port_choice.split("-")
-            if len(parts) > 2:
-                raise ValueError("Invalid range format.")
-            start_port = int(parts[0].strip())
-            end_port = int(parts[1].strip()) if len(parts) == 2 else start_port
-            return validate_port_range(start_port, end_port)
+            return parse_port_spec(port_choice)
         except ValueError as exc:
             console.print(f"[red][!] {exc} Please try again.[/red]")
 
@@ -63,31 +61,47 @@ def interactive_wizard() -> argparse.Namespace:
         target = Prompt.ask("[bold cyan][?][/bold cyan] Target IP/Hostname", default="127.0.0.1")
 
         console.print("\n[bold yellow]Port Scanning Profiles:[/bold yellow]")
-        console.print("  [1] FAST   - Ports 1-10,000")
-        console.print("  [2] ALL    - Ports 1-65,535 (Thorough but slower)")
-        console.print("  [3] CUSTOM - Specify a custom range (e.g., 50-500)")
+        console.print("  [1] QUICK    - Top 100 Common Ports (Fastest)")
+        console.print("  [2] STANDARD - Ports 1-1000")
+        console.print("  [3] ALL      - Ports 1-65,535 (Thorough but slower)")
+        console.print("  [4] CUSTOM   - Specific ports or ranges (e.g., 22,80,443,8000-8100)")
         p_choice = Prompt.ask(
             "[bold cyan][?][/bold cyan] Select Port Profile",
-            choices=["1", "2", "3", "FAST", "ALL", "CUSTOM"],
+            choices=["1", "2", "3", "4", "QUICK", "STANDARD", "ALL", "CUSTOM"],
             default="1",
         )
 
         p_map = {
-            "1": "FAST",
-            "2": "ALL",
-            "3": "CUSTOM",
-            "FAST": "FAST",
+            "1": "QUICK",
+            "2": "STANDARD",
+            "3": "ALL",
+            "4": "CUSTOM",
+            "QUICK": "QUICK",
+            "STANDARD": "STANDARD",
             "ALL": "ALL",
             "CUSTOM": "CUSTOM",
         }
         profile = p_map[p_choice.upper()]
 
-        if profile == "FAST":
-            start_port, end_port = 1, 10000
+        explicit_ports: Optional[List[int]] = None
+        if profile == "QUICK":
+            explicit_ports = list(TOP_100_PORTS)
+            start_port, end_port = explicit_ports[0], explicit_ports[-1]
+            port_label = f"Top {len(explicit_ports)} Common Ports"
+        elif profile == "STANDARD":
+            start_port, end_port = 1, 1000
+            port_label = "1-1000"
         elif profile == "ALL":
             start_port, end_port = 1, 65535
+            port_label = "1-65535"
         else:
-            start_port, end_port = _prompt_custom_ports()
+            explicit_ports = _prompt_custom_ports()
+            start_port, end_port = explicit_ports[0], explicit_ports[-1]
+            port_label = (
+                f"{explicit_ports[0]}"
+                if len(explicit_ports) == 1
+                else f"{len(explicit_ports)} selected ports ({start_port}-{end_port})"
+            )
 
         console.print("\n[bold yellow]Available Scan Modes:[/bold yellow]")
         console.print("  [1] SMART   - Autonomous AI Decision Engine (Recommended)")
@@ -130,7 +144,7 @@ def interactive_wizard() -> argparse.Namespace:
         )
 
         console.print(
-            f"\n[bold green]Summary:[/bold green] Target: {target}, Ports: {start_port}-{end_port}, "
+            f"\n[bold green]Summary:[/bold green] Target: {target}, Ports: {port_label}, "
             f"Mode: {mode}, Jitter: {jitter}, Subdomains: {subdomains}, Report: {report}"
         )
         if Confirm.ask("[bold cyan][?][/bold cyan] Are these settings correct?", default=True):
@@ -138,11 +152,16 @@ def interactive_wizard() -> argparse.Namespace:
                 target=target,
                 start_port=start_port,
                 end_port=end_port,
+                ports=None,
+                top_ports=None,
+                explicit_ports=explicit_ports,
                 mode=mode,
                 report=report,
                 jitter=jitter,
                 subdomains=subdomains,
                 output=None,
+                timeout=ASYNC_TIMEOUT,
+                quiet=False,
             )
         console.print("[yellow][!] Let's try again...[/yellow]\n")
 
@@ -153,8 +172,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawTextHelpFormatter,
         epilog="""
 Examples:
+  syn 192.168.1.1
+  syn 192.168.1.1 -p 22,80,443,8000-8100 --mode ASYNC
   syn 192.168.1.1 1 1000 --mode SMART
-  syn scanme.nmap.org 80 443 --mode ASYNC --report json -o scan.json
+  syn scanme.nmap.org --top-ports 25 --report json -o scan.json
   sudo syn 10.0.0.5 1 65535 --mode S
 """,
     )
@@ -162,6 +183,31 @@ Examples:
     parser.add_argument("target", nargs="?", help="Target IP, CIDR, URL, or hostname to scan")
     parser.add_argument("start_port", nargs="?", type=int, help="Starting port number (1-65535)")
     parser.add_argument("end_port", nargs="?", type=int, help="Ending port number (1-65535)")
+
+    parser.add_argument(
+        "-p",
+        "--ports",
+        default=None,
+        help="Comma-separated ports and/or ranges (e.g., 22,80,443,8000-8100).",
+    )
+    parser.add_argument(
+        "--top-ports",
+        type=int,
+        default=None,
+        help=f"Scan top N most common TCP ports (1-{len(TOP_PORTS_BY_PRIORITY)}).",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=ASYNC_TIMEOUT,
+        help=f"Socket connect timeout in seconds for ASYNC scan (default: {ASYNC_TIMEOUT}).",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Reduce terminal banner/progress output (quiet mode).",
+    )
 
     parser.add_argument(
         "--mode",
@@ -202,6 +248,48 @@ Examples:
     return parser
 
 
+def resolve_port_selection(args: argparse.Namespace) -> Tuple[int, int, Optional[List[int]]]:
+    """
+    Resolve CLI or wizard port options into (start_port, end_port, explicit_ports).
+    Defaults to Top 100 common ports when no port range/list is supplied.
+    """
+    existing = getattr(args, "explicit_ports", None)
+    if existing is not None:
+        return existing[0], existing[-1], list(existing)
+
+    ports_spec = getattr(args, "ports", None)
+    top_n = getattr(args, "top_ports", None)
+    start_p = getattr(args, "start_port", None)
+    end_p = getattr(args, "end_port", None)
+
+    has_positional = start_p is not None or end_p is not None
+    if ports_spec and (has_positional or top_n is not None):
+        raise ValueError("Cannot combine -p/--ports with positional ports or --top-ports.")
+    if top_n is not None and has_positional:
+        raise ValueError("Cannot combine --top-ports with positional port arguments.")
+
+    if ports_spec:
+        selected = parse_port_spec(ports_spec)
+        return selected[0], selected[-1], selected
+
+    if top_n is not None:
+        if top_n < 1 or top_n > len(TOP_PORTS_BY_PRIORITY):
+            raise ValueError(
+                f"--top-ports must be between 1 and {len(TOP_PORTS_BY_PRIORITY)} (got {top_n})."
+            )
+        selected = sorted(TOP_PORTS_BY_PRIORITY[:top_n])
+        return selected[0], selected[-1], selected
+
+    if start_p is not None:
+        resolved_end = end_p if end_p is not None else start_p
+        validate_port_range(start_p, resolved_end)
+        return start_p, resolved_end, None
+
+    # Default when invoked as `syn <target>` without explicit port arguments
+    selected = list(TOP_100_PORTS)
+    return selected[0], selected[-1], selected
+
+
 def resolve_scan_targets(raw_target: str, expand_subdomains: bool) -> List[Tuple[str, str]]:
     """Parse target, optionally expand subdomains, and discover live hosts for multi-IP targets."""
     try:
@@ -238,7 +326,12 @@ def resolve_scan_targets(raw_target: str, expand_subdomains: bool) -> List[Tuple
 
 
 def decide_smart_mode(
-    ip: str, start_port: int, end_port: int, jitter: bool, analyzer: AIAnalyzer
+    ip: str,
+    start_port: int,
+    end_port: int,
+    jitter: bool,
+    analyzer: AIAnalyzer,
+    explicit_ports: Optional[List[int]] = None,
 ) -> str:
     """Execute SMART OODA pre-probe using AI inference and return the chosen scan engine."""
     logger.info("[MODULE] Initializing OODA Loop (SMART Mode)...")
@@ -247,9 +340,15 @@ def decide_smart_mode(
         logger.warning(f"[SMART] {reason} Falling back to ASYNC scan.")
         return "ASYNC"
 
-    ports_to_check = [p for p in QUICK_SCAN_PORTS if start_port <= p <= end_port]
-    if not ports_to_check:
-        ports_to_check = list(range(start_port, min(end_port + 1, start_port + 10)))
+    if explicit_ports:
+        explicit_set = set(explicit_ports)
+        ports_to_check = [p for p in QUICK_SCAN_PORTS if p in explicit_set]
+        if not ports_to_check:
+            ports_to_check = explicit_ports[:10]
+    else:
+        ports_to_check = [p for p in QUICK_SCAN_PORTS if start_port <= p <= end_port]
+        if not ports_to_check:
+            ports_to_check = list(range(start_port, min(end_port + 1, start_port + 10)))
 
     probe_scanner = StealthScanner(
         ip,
@@ -258,6 +357,7 @@ def decide_smart_mode(
         scan_type="S",
         jitter_enabled=jitter,
         ports_override=ports_to_check,
+        show_progress=False,
     )
     initial_results = probe_scanner.scan()
     initial_analyzed = analyzer.analyze(initial_results)
@@ -295,10 +395,18 @@ def scan_single_target(
 ) -> List[Dict[str, Any]]:
     logger.info(f">>> Scanning Target: {ip} ({hostname}) <<<")
     scan_mode = args.mode
+    start_p, end_p, explicit_ports = resolve_port_selection(args)
+    timeout = float(getattr(args, "timeout", ASYNC_TIMEOUT))
+    show_progress = not bool(getattr(args, "quiet", False))
 
     if scan_mode == "SMART":
         scan_mode = decide_smart_mode(
-            ip, args.start_port, args.end_port, getattr(args, "jitter", False), analyzer
+            ip,
+            start_p,
+            end_p,
+            getattr(args, "jitter", False),
+            analyzer,
+            explicit_ports=explicit_ports,
         )
 
     if scan_mode != "ASYNC":
@@ -308,15 +416,24 @@ def scan_single_target(
             return []
 
     if scan_mode == "ASYNC":
-        scanner = AsyncScanner(ip, args.start_port, args.end_port)
+        scanner = AsyncScanner(
+            ip,
+            start_p,
+            end_p,
+            timeout=timeout,
+            ports=explicit_ports,
+            show_progress=show_progress,
+        )
         target_results = scanner.scan()
     else:
         scanner = StealthScanner(
             ip,
-            args.start_port,
-            args.end_port,
+            start_p,
+            end_p,
             scan_mode,
             getattr(args, "jitter", False),
+            ports=explicit_ports,
+            show_progress=show_progress,
         )
         target_results = scanner.scan()
 
@@ -339,10 +456,13 @@ def scan_single_target(
         if res["status"] == STATUS_OPEN:
             srv_info = ServiceIdentifier.identify(res["port"], res.get("banner", ""))
             res["banner_is_fallback"] = bool(srv_info["is_fallback"])
+            if srv_info.get("banner_summary"):
+                res["banner_summary"] = srv_info["banner_summary"]
             if (
                 not res.get("banner") or res.get("banner") == "Unknown (No Banner)"
             ) and srv_info["service_name"] != "Unknown (No Banner)":
                 res["banner"] = srv_info["service_name"]
+                res["banner_summary"] = srv_info["service_name"]
 
             if srv_info["is_web"] and scan_mode != "U":
                 logger.info(f"[WEB] Analyzing HTTP surface dynamically on port {res['port']}...")
@@ -384,11 +504,16 @@ def main() -> None:
             args = interactive_wizard()
         else:
             args = parser.parse_args()
-            if args.target is None or args.start_port is None or args.end_port is None:
+            if args.target is None:
                 parser.print_help(sys.stderr)
                 sys.exit(1)
             try:
-                validate_port_range(args.start_port, args.end_port)
+                if getattr(args, "timeout", ASYNC_TIMEOUT) <= 0:
+                    raise ValueError("--timeout must be a positive number.")
+                start_p, end_p, explicit_ports = resolve_port_selection(args)
+                args.start_port = start_p
+                args.end_port = end_p
+                args.explicit_ports = explicit_ports
             except ValueError as exc:
                 console.print(f"[red][!] {exc}[/red]")
                 sys.exit(1)
@@ -396,8 +521,14 @@ def main() -> None:
         console.print("\n[bold red][!] Interrupted by user. Exiting...[/bold red]")
         sys.exit(0)
 
+    target_level = logging.WARNING if getattr(args, "quiet", False) else logging.INFO
+    for handler in logger.handlers:
+        if not isinstance(handler, logging.FileHandler):
+            handler.setLevel(target_level)
+    if not getattr(args, "quiet", False):
+        console.print("\n[bold cyan]    [ SYN ENGINE INITIALIZATION ]    [/bold cyan]\n")
+
     enable_file_logging()
-    console.print("\n[bold cyan]    [ SYN ENGINE INITIALIZATION ]    [/bold cyan]\n")
 
     targets = resolve_scan_targets(args.target, getattr(args, "subdomains", False))
     if not targets:

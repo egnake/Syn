@@ -199,3 +199,40 @@ class TestAIModelsAndAnalyzer:
 
         # Extreme outlier triggers anomaly detection
         assert out[2]["anomaly_score"] < ANOMALY_THRESHOLD
+
+    def test_analyzer_banner_hint_and_host_correlation_without_ttl(self):
+        mm = ModelManager()
+        clf, lof, scaler = mm.load_or_train_models()
+        analyzer = AIAnalyzer(clf, lof, scaler)
+
+        sample = [
+            {"port": 22, "status": STATUS_OPEN, "ttl": -1, "latency_ms": 1.2, "banner": "SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.10"},
+            {"port": 445, "status": STATUS_OPEN, "ttl": -1, "latency_ms": 1.5, "banner": "SMB (Port Fallback)"},
+        ]
+        out = analyzer.analyze(sample)
+        assert "Linux (Ubuntu/Debian)" in out[0]["ai_os_tahmini"]
+        assert "Banner Hint" in out[0]["ai_os_tahmini"]
+        assert "Linux (Ubuntu/Debian)" in out[1]["ai_os_tahmini"]
+        assert "Host Correlation" in out[1]["ai_os_tahmini"]
+        assert out[0]["anomaly_score"] is None
+        assert out[1]["anomaly_score"] is None
+
+    def test_async_scanner_disjoint_ports_and_banner_summary(self):
+        srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        srv.bind(("127.0.0.1", 0))
+        srv.listen(5)
+        open_p = srv.getsockname()[1]
+        closed_p = _find_unused_port()
+        try:
+            res = AsyncScanner("127.0.0.1", ports=[closed_p, open_p], show_progress=False).scan()
+            by_port = {r["port"]: r for r in res}
+            assert set(by_port.keys()) == {open_p, closed_p}
+            assert by_port[open_p]["status"] == STATUS_OPEN
+        finally:
+            srv.close()
+
+        summary = ServiceIdentifier.summarize_banner(
+            80,
+            "HTTP/1.0 200 OK Date: Sat, 15 Nov 2026 Server: SimpleHTTP/0.6 Python/3.12.3 Content-type: text/html",
+        )
+        assert summary == "HTTP/1.0 200 OK | Server: SimpleHTTP/0.6 Python/3.12.3"

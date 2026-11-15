@@ -3,9 +3,11 @@ import json
 from unittest.mock import MagicMock, patch
 import pytest
 
+from syn.core.config import TOP_100_PORTS, TOP_PORTS_BY_PRIORITY
 from syn.core.sanitizer import (
     escape_html,
     escape_markdown_cell,
+    parse_port_spec,
     sanitize_terminal_text,
     strip_control_chars,
     validate_port_range,
@@ -124,3 +126,19 @@ class TestSubdomainEnum:
 
         assert subs == ["a.example.com", "b.example.com"]
         assert "badexample.com" not in subs
+
+
+class TestPortSpecs:
+    def test_parse_port_spec_deduplicates_and_sorts(self):
+        ports = parse_port_spec("443, 22, 8000-8002, 80, 22")
+        assert ports == [22, 80, 443, 8000, 8001, 8002]
+
+    @pytest.mark.parametrize("bad", ["", "0", "65536", "80-22", "abc", "22,,80", "1-2-3"])
+    def test_parse_port_spec_rejects_invalid(self, bad):
+        with pytest.raises(ValueError):
+            parse_port_spec(bad)
+
+    def test_top_100_ports_valid_and_unique(self):
+        assert len(TOP_PORTS_BY_PRIORITY) == 100
+        assert len(TOP_100_PORTS) == 100
+        assert TOP_100_PORTS[0] >= 1 and TOP_100_PORTS[-1] <= 65535

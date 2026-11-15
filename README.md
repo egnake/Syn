@@ -24,7 +24,8 @@ Designed for red teamers, bug bounty hunters, and penetration testers, SYN combi
 *   **🤖 Autonomous AI Engine (SMART Mode)**: Utilizes verified Random Forest and Local Outlier Factor models to analyze observed network vectors (TTL, Latency) and dynamically select or pivot scan modes (e.g., falling back cleanly to ASYNC without root/Npcap, or pivoting to FIN if probes are silently dropped).
 *   **⚡ Ultra-Fast Asynchronous Scanning**: Implements high-performance TCP connection scans via `asyncio`, distinguishing open, closed (`RST`), and filtered (timeout) ports without requiring elevated privileges.
 *   **🥷 Stealth Operations & AI Jitter**: Integrates a `scapy` engine supporting SYN, ACK, FIN, XMAS, NULL, and UDP scans with bounded thread pools, randomized source ports, and **AI Dynamic Jitter** for adaptive rate control.
-*   **🌐 Version-Aware CVE Integration**: Queries the CIRCL CVE Search API (`cve.circl.lu`) and curated static vulnerability recipes only when product and version signatures are confirmed, using a local SQLite cache to minimize repeated API calls and false positives.
+*   **🌐 Version-Aware CVE & TLS Intelligence**: Queries the CIRCL CVE Search v2 API (`cve.circl.lu` CVE 5.x/NVD records) and curated static recipes only when confirmed product/version signatures exist, inspects HTTPS certificates and deprecated TLS protocols (`TLSv1.0`/`TLSv1.1`), and caches results locally in SQLite.
+*   **🛡️ Flexible Targeting & Banner OS Correlation**: Scan with zero port args (`syn <target>` scans the Top 100 ports), flexible specs (`-p 22,80,443,8000-8100`), `--top-ports`, live Rich progress bars, and automatic banner/host OS hinting when non-root `ASYNC` mode runs without raw TTL.
 *   **📊 Rich Terminal UI & Reporting**: Features an interactive setup wizard, sanitized Rich console tables, and XSS/injection-safe exports in JSON, HTML, and Markdown (`-o/--output`).
 *   **🐳 Docker Ready**: Fully containerized environment for isolated execution with persisted cache, logs, and reports.
 
@@ -122,7 +123,7 @@ Action: Samba service may be vulnerable. Check version and update.
 ### Option 1: Docker (Recommended for Stealth Scans)
 Running via Docker ensures all `scapy` dependencies (like `tcpdump` and `libpcap`) are perfectly isolated.
 ```bash
-git clone https://github.com/egnakesec/syn.git
+git clone https://github.com/egnake/syn.git
 cd syn
 docker-compose up --build
 ```
@@ -131,7 +132,7 @@ docker-compose up --build
 ### Option 2: Local Installation (Requires Python 3.10+)
 If you prefer running it locally on your host machine:
 ```bash
-git clone https://github.com/egnakesec/syn.git
+git clone https://github.com/egnake/syn.git
 cd syn
 pip install -e .
 ```
@@ -151,14 +152,20 @@ syn
 For automated pipelines or power users, SYN supports direct execution:
 
 ```bash
-# Autonomous AI Scan on a specific port range
+# Quick scan (defaults to Top 100 common TCP ports)
+syn 192.168.1.1
+
+# Flexible port selection (-p supports lists and ranges)
+syn 192.168.1.1 -p 22,80,443,8000-8100 --mode ASYNC
+
+# Scan Top N common ports with custom timeout and quiet output
+syn scanme.nmap.org --top-ports 25 --timeout 2.0 -q --report json -o scan_results.json
+
+# Autonomous AI Scan on a classic positional range
 syn 192.168.1.1 1 1000 --mode SMART
 
-# Ultra-Fast Async Scan (No root needed) with JSON reporting
-syn scanme.nmap.org 80 443 --mode ASYNC --report json -o scan_results.json
-
 # Include OSINT subdomain discovery via crt.sh
-syn example.com 80 443 --mode ASYNC --subdomains
+syn example.com -p 80,443 --mode ASYNC --subdomains
 
 # Stealth TCP SYN Scan (Requires Root/Admin Privileges + libpcap/Npcap)
 sudo syn 10.0.0.5 1 65535 --mode S

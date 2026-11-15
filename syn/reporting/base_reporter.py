@@ -20,6 +20,7 @@ from syn.core.config import (
     STATUS_UNFILTERED,
     get_reports_dir,
 )
+from syn.scanner.service_identifier import ServiceIdentifier
 
 _LEGACY_RISK_MAP = {
     "KRİTİK": RISK_CRITICAL,
@@ -80,15 +81,34 @@ class BaseReporter(ABC):
         return target
 
     @staticmethod
+    def format_banner_display(res: Dict[str, Any]) -> str:
+        """Return concise display banner, summarizing raw HTTP headers cleanly."""
+        summary = str(res.get("banner_summary") or "").strip()
+        if summary:
+            return summary
+        raw_banner = str(res.get("banner") or "")
+        if not raw_banner:
+            return "-"
+        port_raw = res.get("port", 0)
+        port_val = port_raw if isinstance(port_raw, int) else 0
+        return ServiceIdentifier.summarize_banner(port_val, raw_banner) or "-"
+
+    @staticmethod
     def summarize_web_info(web_info: Any) -> Dict[str, Any]:
         if not isinstance(web_info, dict) or not web_info.get("is_web"):
             return {}
+        tls_summary = ""
+        tls_info = web_info.get("tls_info")
+        if isinstance(tls_info, dict) and tls_info.get("tls_version"):
+            trust = "Trusted Cert" if tls_info.get("cert_verified") else "Untrusted Cert"
+            tls_summary = f"{tls_info['tls_version']} ({trust})"
         return {
             "scheme": str(web_info.get("scheme") or "http"),
             "title": str(web_info.get("title") or "Unknown"),
             "waf": str(web_info.get("waf") or "None Detected"),
             "has_robots": bool(web_info.get("has_robots")),
             "missing_headers": list(web_info.get("missing_security_headers") or []),
+            "tls_summary": tls_summary,
         }
 
     @staticmethod

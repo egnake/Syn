@@ -36,7 +36,7 @@ class HTMLReporter(BaseReporter):
 
             port = res.get("port", "N/A")
             state = str(res.get("status", "Unknown"))
-            banner = str(res.get("banner", "-") or "-")
+            banner = self.format_banner_display(res)
             os_guess = self.normalize_os(res)
             decision = risk_analysis["decision"]
 
@@ -70,10 +70,15 @@ class HTMLReporter(BaseReporter):
                 missing_str = (
                     ", ".join(web["missing_headers"]) if web["missing_headers"] else "None"
                 )
+                tls_part = (
+                    f" | TLS={escape_html(web['tls_summary'])}"
+                    if web.get("tls_summary")
+                    else ""
+                )
                 details += (
                     f"<br><strong>Web ({escape_html(web['scheme'].upper())}):</strong> "
                     f"Title={escape_html(web['title'], max_len=40)} | "
-                    f"WAF={escape_html(web['waf'])} | "
+                    f"WAF={escape_html(web['waf'])}{tls_part} | "
                     f"robots.txt={'Yes' if web['has_robots'] else 'No'} | "
                     f"Missing Headers={escape_html(missing_str)}"
                 )

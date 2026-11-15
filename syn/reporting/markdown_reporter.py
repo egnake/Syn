@@ -43,7 +43,7 @@ class MarkdownReporter(BaseReporter):
             ip = escape_markdown_cell(res.get("target_ip", "127.0.0.1"))
             port = escape_markdown_cell(res.get("port", "N/A"))
             state = escape_markdown_cell(res.get("status", "Unknown"))
-            banner = escape_markdown_cell(res.get("banner", "-") or "-", max_len=50)
+            banner = escape_markdown_cell(self.format_banner_display(res), max_len=55)
             os_guess = escape_markdown_cell(self.normalize_os(res))
             decision = risk_analysis["decision"]
 
@@ -67,10 +67,15 @@ class MarkdownReporter(BaseReporter):
             web = self.summarize_web_info(res.get("web_info"))
             if web:
                 missing_str = ", ".join(web["missing_headers"]) if web["missing_headers"] else "None"
+                tls_part = (
+                    f", TLS={escape_markdown_cell(web['tls_summary'])}"
+                    if web.get("tls_summary")
+                    else ""
+                )
                 detail_parts.append(
                     f"Web ({escape_markdown_cell(web['scheme'].upper())}): "
                     f"Title={escape_markdown_cell(web['title'], max_len=30)}, "
-                    f"WAF={escape_markdown_cell(web['waf'])}, "
+                    f"WAF={escape_markdown_cell(web['waf'])}{tls_part}, "
                     f"robots.txt={'Yes' if web['has_robots'] else 'No'}, "
                     f"Missing Headers={escape_markdown_cell(missing_str)}"
                 )

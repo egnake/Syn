@@ -5,12 +5,13 @@ SYN - Web Attack Surface Analyzer
 import html
 import ipaddress
 import re
+import socket
 import ssl
 from typing import Any, Dict, List, Optional
 import urllib.error
 import urllib.parse
 import urllib.request
-from syn.core.config import MAX_HTTP_BODY_BYTES
+from syn.core.config import MAX_HTTP_BODY_BYTES, TLS_DEPRECATED_VERSIONS
 from syn.core.sanitizer import strip_control_chars
 
 
@@ -91,6 +92,72 @@ class HttpAnalyzer:
             return True
         return any(tok in body_lower for tok in ("user-agent:", "disallow:", "allow:", "sitemap:"))
 
+    @staticmethod
+    def _is_ip_literal(value: Optional[str]) -> bool:
+        if not value:
+            return False
+        try:
+            ipaddress.ip_address(value)
+            return True
+        except ValueError:
+            return False
+
+    def _inspect_tls(
+        self, ip: str, port: int, hostname: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """Inspect negotiated TLS protocol, cipher, and certificate verification status."""
+        sni_host = hostname if hostname and not self._is_ip_literal(hostname) else None
+        verified_ctx = ssl.create_default_context()
+        verified_ctx.check_hostname = bool(sni_host)
+        verified_ctx.verify_mode = ssl.CERT_REQUIRED
+
+        tls_info: Dict[str, Any] = {
+            "tls_version": None,
+            "cipher": None,
+            "cert_subject": "",
+            "cert_expires": "",
+            "cert_verified": False,
+            "tls_issue": None,
+        }
+
+        try:
+            with socket.create_connection((ip, port), timeout=3) as sock:
+                with verified_ctx.wrap_socket(sock, server_hostname=sni_host) as ssock:
+                    tls_info["tls_version"] = ssock.version()
+                    cipher = ssock.cipher()
+                    tls_info["cipher"] = cipher[0] if cipher else None
+                    cert = ssock.getpeercert() or {}
+                    subject = {
+                        k: v for rdn in cert.get("subject", ()) for k, v in rdn if len(rdn) > 0
+                    }
+                    tls_info["cert_subject"] = strip_control_chars(subject.get("commonName", ""))
+                    tls_info["cert_expires"] = strip_control_chars(cert.get("notAfter", ""))
+                    tls_info["cert_verified"] = True
+                    if tls_info["tls_version"] in TLS_DEPRECATED_VERSIONS:
+                        tls_info["tls_issue"] = f"Deprecated TLS protocol ({tls_info['tls_version']})"
+                    return tls_info
+        except ssl.SSLError as exc:
+            tls_info["tls_issue"] = strip_control_chars(str(exc), single_line=True)[:120]
+        except (socket.timeout, TimeoutError, OSError):
+            return None
+
+        # Verification failed; inspect negotiated protocol/cipher safely without trusting cert
+        try:
+            with socket.create_connection((ip, port), timeout=3) as sock:
+                with self.ctx.wrap_socket(sock, server_hostname=sni_host) as ssock:
+                    tls_info["tls_version"] = ssock.version()
+                    cipher = ssock.cipher()
+                    tls_info["cipher"] = cipher[0] if cipher else None
+                    if tls_info["tls_version"] in TLS_DEPRECATED_VERSIONS:
+                        dep = f"Deprecated TLS protocol ({tls_info['tls_version']})"
+                        tls_info["tls_issue"] = (
+                            f"{dep}; {tls_info['tls_issue']}" if tls_info["tls_issue"] else dep
+                        )
+        except (ssl.SSLError, socket.timeout, TimeoutError, OSError):
+            pass
+
+        return tls_info
+
     def analyze_web_service(
         self, ip: str, port: int, hostname: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -102,6 +169,7 @@ class HttpAnalyzer:
             "waf": "None Detected",
             "missing_security_headers": [],
             "has_robots": False,
+            "tls_info": None,
         }
 
         url_host = self._format_host_for_url(ip)
@@ -179,5 +247,8 @@ class HttpAnalyzer:
                 result["has_robots"] = self._is_valid_robots_txt(resp.status, ctype, robots_body)
         except Exception:
             pass
+
+        if working_scheme == "https":
+            result["tls_info"] = self._inspect_tls(ip, port, hostname=hostname)
 
         return result

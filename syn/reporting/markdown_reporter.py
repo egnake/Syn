@@ -1,76 +1,89 @@
 """
-SYN - Markdown Raporlama Modülü
+SYN - Markdown Reporting Module
 """
 
 from datetime import datetime
-from typing import List, Dict, Any
-import numpy as np
+from typing import Any, Dict, List, Optional
+from syn.core.config import RISK_CRITICAL, RISK_HIGH, RISK_LOW, RISK_MEDIUM, RISK_NONE
+from syn.core.sanitizer import escape_markdown_cell
+from .base_reporter import BaseReporter
 
 
-class MarkdownReporter:
-    """Tarama sonuçlarını Github/Gitlab uyumlu Markdown formatında raporlar."""
+class MarkdownReporter(BaseReporter):
+    """Exports scan results to GitHub/GitLab-safe Markdown tables."""
 
-    def generate(self, results: List[Dict[str, Any]], cve_engine, filename: str = "syn_report.md"):
-        lines = []
-        lines.append("# SYN Penetration Test Report\n")
-        lines.append(f"**Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+    def generate(
+        self,
+        results: List[Dict[str, Any]],
+        cve_engine: Any,
+        filename: Optional[str] = None,
+    ) -> str:
+        out_path = self.resolve_output_path(filename, "syn_report.md")
+        rows, skipped_open_filtered, error_count = self.partition_display_rows(results, cve_engine)
 
-        # Summary
-        open_count = sum(1 for r in results if r.get('status') in ['OPEN', 'OPEN | FILTERED'])
-        targets = set(r.get('target_ip', '?') for r in results if r.get('status') in ['OPEN', 'OPEN | FILTERED'])
-        lines.append("## Summary\n")
-        lines.append(f"- **Targets Scanned:** {len(targets)}")
-        lines.append(f"- **Open Ports Found:** {open_count}\n")
+        targets = {str(res.get("target_ip", "?")) for res, _ in rows}
+        lines = [
+            "# SYN Penetration Test Report\n",
+            f"**Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n",
+            "## Summary\n",
+            f"- **Targets Scanned:** {len(targets)}",
+            f"- **Reported Ports:** {len(rows)}",
+        ]
+        if skipped_open_filtered > 0:
+            lines.append(f"- **Suppressed `OPEN | FILTERED` Ports:** {skipped_open_filtered}")
+        if error_count > 0:
+            lines.append(f"- **Probe Errors:** {error_count}")
+        lines.append("")
 
-        # Results table
         lines.append("## Scan Results\n")
         lines.append("| Target IP | Port | State | Service/Banner | AI OS | Risk Level | Details |")
         lines.append("|---|---|---|---|---|---|---|")
 
-        for res in results:
-            if res.get('status') not in ['OPEN', 'OPEN | FILTERED']:
-                continue
+        for res, risk_analysis in rows:
+            ip = escape_markdown_cell(res.get("target_ip", "127.0.0.1"))
+            port = escape_markdown_cell(res.get("port", "N/A"))
+            state = escape_markdown_cell(res.get("status", "Unknown"))
+            banner = escape_markdown_cell(res.get("banner", "-") or "-", max_len=50)
+            os_guess = escape_markdown_cell(self.normalize_os(res))
+            decision = risk_analysis["decision"]
 
-            ip = res.get('target_ip', '127.0.0.1')
-            port = res.get('port', 'N/A')
-            state = res.get('status', 'Unknown')
-
-            banner = str(res.get('banner', '-') or '-').replace('\n', ' ').replace('\r', '').replace('|', '/')
-            if len(banner) > 50:
-                banner = banner[:47] + "..."
-
-            os_guess = res.get('ai_os_tahmini', 'Unknown')
-            if isinstance(os_guess, (list, np.ndarray)):
-                os_guess = str(os_guess[0])
-
-            risk_analysis = cve_engine.evaluate_result(res)
-            decision = risk_analysis['decision']
-
-            if decision == 'CRITICAL RISK':
+            if decision == RISK_CRITICAL:
                 decision_str = "🔴 **CRITICAL**"
-            elif decision == 'HIGH RISK':
+            elif decision == RISK_HIGH:
                 decision_str = "🟠 **HIGH**"
-            elif decision == 'MEDIUM RISK':
+            elif decision == RISK_MEDIUM:
                 decision_str = "🟡 **MEDIUM**"
-            elif decision == 'LOW RISK':
+            elif decision == RISK_LOW:
                 decision_str = "🟢 LOW"
             else:
                 decision_str = "✅ SAFE"
 
-            if decision != 'NO_ACTION':
-                warning = risk_analysis.get('Warning', '').replace('\n', ' ').replace('|', '/')
-                action = risk_analysis.get('Action', '').replace('\n', ' ').replace('|', '/')
-                details = f"{warning} → {action}"
-            else:
-                details = "-"
+            detail_parts = []
+            if decision != RISK_NONE:
+                warning = escape_markdown_cell(risk_analysis.get("Warning", ""))
+                action = escape_markdown_cell(risk_analysis.get("Action", ""))
+                detail_parts.append(f"{warning} → {action}")
 
-            lines.append(f"| {ip} | {port} | {state} | `{banner}` | {os_guess} | {decision_str} | {details} |")
+            web = self.summarize_web_info(res.get("web_info"))
+            if web:
+                missing_str = ", ".join(web["missing_headers"]) if web["missing_headers"] else "None"
+                detail_parts.append(
+                    f"Web ({escape_markdown_cell(web['scheme'].upper())}): "
+                    f"Title={escape_markdown_cell(web['title'], max_len=30)}, "
+                    f"WAF={escape_markdown_cell(web['waf'])}, "
+                    f"robots.txt={'Yes' if web['has_robots'] else 'No'}, "
+                    f"Missing Headers={escape_markdown_cell(missing_str)}"
+                )
+
+            details = "; ".join(detail_parts) if detail_parts else "-"
+            lines.append(
+                f"| {ip} | {port} | {state} | `{banner}` | {os_guess} | {decision_str} | {details} |"
+            )
 
         lines.append("\n---")
         lines.append("*Generated by SYN AI-Powered Pentest Framework*\n")
 
-        content = "\n".join(lines)
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(content)
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines))
 
-        return filename
+        return out_path
